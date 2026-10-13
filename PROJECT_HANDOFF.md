@@ -128,6 +128,23 @@ Vercel automatically builds and updates the live site at `https://apna-khata-adv
 3. Paste the contents of `supabase_setup.sql` and click **Run**.
 4. Since all statements are non-destructive, all your existing family data remains 100% intact.
 
+### C. Factory Reset / Wipe Test Data Before Client Handover
+Jab aap app kisi naye client ko fresh handover karna chahein, to test users aur families ko aik second mein clean karne ke liye:
+1. Supabase SQL Editor mein `wipe_test_data.sql` run karein:
+```sql
+TRUNCATE TABLE 
+  public.committee_records, 
+  public.committees, 
+  public.household_finance, 
+  public.month_rollovers, 
+  public.khata_entries, 
+  public.app_sessions, 
+  public.app_users, 
+  public.families 
+CASCADE;
+```
+2. Is ke baad `supabase_setup.sql` aik baar chala dein taake tamaam functions aur security policies active rahein. App 100% fresh aur new factory state mein ready ho jayegi!
+
 ---
 
 ## 7. Sign-Off & Verification Checklist

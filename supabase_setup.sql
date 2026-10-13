@@ -571,10 +571,22 @@ alter table public.household_finance enable row level security;
 alter table public.month_rollovers enable row level security;
 
 drop policy if exists fam_select on public.families;
+drop policy if exists fam_insert on public.families;
+drop policy if exists fam_update on public.families;
+drop policy if exists fam_delete on public.families;
 create policy fam_select on public.families for select using (true);
+create policy fam_insert on public.families for insert with check (true);
+create policy fam_update on public.families for update using (true);
+create policy fam_delete on public.families for delete using (true);
 
 drop policy if exists users_select on public.app_users;
+drop policy if exists users_insert on public.app_users;
+drop policy if exists users_update on public.app_users;
+drop policy if exists users_delete on public.app_users;
 create policy users_select on public.app_users for select using (true);
+create policy users_insert on public.app_users for insert with check (true);
+create policy users_update on public.app_users for update using (true);
+create policy users_delete on public.app_users for delete using (true);
 
 drop policy if exists khata_select on public.khata_entries;
 drop policy if exists khata_insert on public.khata_entries;
