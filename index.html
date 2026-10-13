@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ur" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Apna Khata Advance - Zaati & Gharana Hisaab</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20width=%22100%22%20height=%22100%22><text y=%22.9em%22 font-size=%2290%22>📒</text></svg>">
+</head>
+<body>
+
+  <!-- AUTHENTICATION SCREEN -->
+  <div id="authScreen" class="auth-container">
+    <div class="auth-card">
+      <div class="brand-header">
+        <div class="brand-icon">📒</div>
+        <h1>Apna Khata Advance</h1>
+        <p>Zaati Lena-Dena, Kameti & Gharana Hisaab</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tabLoginBtn">Login</button>
+        <button type="button" class="auth-tab" id="tabRegisterBtn">Nayi Profile Banayein</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginPhone">Mobile Number</label>
+          <input type="tel" id="loginPhone" class="form-input" placeholder="03001234567" required autocomplete="tel">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="loginPassword" class="form-input" placeholder="Apna password likhein" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-pwd" data-target="loginPassword">Show</button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="loginSubmitBtn">Khata Kholein</button>
+      </form>
+
+      <!-- REGISTRATION FORM -->
+      <form id="registerForm" style="display: none;">
+        <div class="form-group">
+          <label for="regName">Aap Ka Naam</label>
+          <input type="text" id="regName" class="form-input" placeholder="Maslan: Muhammad Nabeel" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="regPhone">Mobile Number (Login ID)</label>
+          <input type="tel" id="regPhone" class="form-input" placeholder="03001234567" required autocomplete="tel">
+        </div>
+        <div class="form-group">
+          <label for="regPassword">Naya Password Choose Karein</label>
+          <div class="input-wrapper">
+            <input type="password" id="regPassword" class="form-input" placeholder="Kam az kam 4 huroof ya digits" required autocomplete="new-password">
+            <button type="button" class="btn-toggle-pwd" data-target="regPassword">Show</button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="regSubmitBtn">Profile Banayein & Shuru Karein</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="mainApp" style="display: none; min-height: 100vh; flex-direction: column;">
+    
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="header-title-box">
+          <span style="font-size: 24px;">📒</span>
+          <div>
+            <h2 style="font-size: 16px; font-weight: 700;">Apna Khata Advance</h2>
+            <span id="todayDateStr" style="font-size: 12px; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <div class="user-badge">
+          <div class="user-avatar" id="userAvatarChar">N</div>
+          <span class="user-name" id="userDisplayName">Nabeel</span>
+          <button type="button" class="btn-icon-subtle" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Bar -->
+    <nav class="app-nav">
+      <div class="nav-inner">
+        <button type="button" class="nav-tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+        <button type="button" class="nav-tab-btn" data-tab="khata">🤝 Lena-Dena Khata</button>
+        <button type="button" class="nav-tab-btn" data-tab="kameti">👥 Kameti / Committee</button>
+        <button type="button" class="nav-tab-btn" data-tab="finance">🏠 Gharana Aamdan & Kharch</button>
+      </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="main-content">
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="viewDashboard" class="view-section active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon green">📥</div>
+            <div class="stat-info">
+              <h3>Kul Lene Hain (Receivable)</h3>
+              <p id="dashReceivable">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">📤</div>
+            <div class="stat-info">
+              <h3>Kul Dene Hain (Payable)</h3>
+              <p id="dashPayable">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">💰</div>
+            <div class="stat-info">
+              <h3>Kameti Bachat (Active Pools)</h3>
+              <p id="dashKametiTotal">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">⚖️</div>
+            <div class="stat-info">
+              <h3>Is Maah Net Balance</h3>
+              <p id="dashMonthBalance">Rs 0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <h3 class="section-title">Haliyah Activity (Recent Entries)</h3>
+        </div>
+        <div id="recentActivityList" class="card-list">
+          <!-- Dynamically filled -->
+        </div>
+      </section>
+
+      <!-- VIEW 2: LENA-DENA KHATA -->
+      <section id="viewKhata" class="view-section">
+        <div class="section-header">
+          <div>
+            <h3 class="section-title">Lena-Dena Khata (Udhaar & Settlements)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Logon se lain-dain ka mukammal hisaab</p>
+          </div>
+          <button type="button" class="btn-add" id="openKhataModalBtn">+ Nayi Entry Karein</button>
+        </div>
+
+        <div class="stats-grid" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="stat-icon green">🟢</div>
+            <div class="stat-info">
+              <h3>Maine Logon Ko Diye</h3>
+              <p id="khataTotalReceivable">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">🔴</div>
+            <div class="stat-info">
+              <h3>Logon Ne Mujhe Diye</h3>
+              <p id="khataTotalPayable">Rs 0</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="khataList" class="card-list">
+          <!-- Dynamically filled -->
+        </div>
+      </section>
+
+      <!-- VIEW 3: KAMETI / COMMITTEE TRACKER -->
+      <section id="viewKameti" class="view-section">
+        <div class="section-header">
+          <div>
+            <h3 class="section-title">Kameti / Committee Tracker</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Kul raqam, maahana qist, payout mahina aur adaigi ka hisaab</p>
+          </div>
+          <button type="button" class="btn-add" id="openKametiModalBtn">+ Nayi Kameti Shuru Karein</button>
+        </div>
+
+        <div id="kametiList" class="card-list">
+          <!-- Dynamically filled -->
+        </div>
+      </section>
+
+      <!-- VIEW 4: GHARANA AAMDAN & KHARCH -->
+      <section id="viewFinance" class="view-section">
+        <div class="section-header">
+          <div>
+            <h3 class="section-title">Ghar Ki Aamdan Aur Kharch (Budget)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Salary, rashan, bills aur aam ikhrajaat ka hisaab</p>
+          </div>
+          <button type="button" class="btn-add" id="openFinanceModalBtn">+ Aamdan ya Kharch Likhein</button>
+        </div>
+
+        <div class="stats-grid" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="stat-icon green">💵</div>
+            <div class="stat-info">
+              <h3>Is Maah Kul Aamdan</h3>
+              <p id="financeTotalIncome">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">🧾</div>
+            <div class="stat-info">
+              <h3>Is Maah Kul Kharch</h3>
+              <p id="financeTotalExpense">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">🏦</div>
+            <div class="stat-info">
+              <h3>Maahana Bachat (Savings)</h3>
+              <p id="financeNetSavings">Rs 0</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="financeList" class="card-list">
+          <!-- Dynamically filled -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: ADD KHATA ENTRY -->
+  <div class="modal-overlay" id="khataModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Nayi Khata Entry</h3>
+        <button type="button" class="btn-close-modal" data-close="khataModal">✕</button>
+      </div>
+      <form id="khataForm">
+        <div class="form-group">
+          <label for="khataPerson">Shakhs Ka Naam</label>
+          <input type="text" id="khataPerson" class="form-input" placeholder="Maslan: Ali, Usman, Chacha ji" required>
+        </div>
+        <div class="form-group">
+          <label for="khataPhone">Mobile Number (Ikhtiyari / Optional)</label>
+          <input type="tel" id="khataPhone" class="form-input" placeholder="03001234567">
+        </div>
+        <div class="form-group">
+          <label for="khataType">Hisaab Ki Qisam</label>
+          <select id="khataType" class="form-select" required>
+            <option value="receivable">Maine is ko diye (Mujhe wapas lene hain)</option>
+            <option value="payable">Is ne mujhe diye (Mujhe wapas dene hain)</option>
+            <option value="settlement_received">Is ne mujhe wapas diye (Khata wapsi)</option>
+            <option value="settlement_paid">Maine is ko wapas diye (Khata adaigi)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="khataAmount">Raqam (Rupees)</label>
+          <input type="number" id="khataAmount" class="form-input" placeholder="Maslan: 5000" min="1" required>
+        </div>
+        <div class="form-group">
+          <label for="khataNote">Wajah / Note</label>
+          <input type="text" id="khataNote" class="form-input" placeholder="Maslan: Shopping ke liye, dukan ka saman">
+        </div>
+        <button type="submit" class="btn-primary">Save Karein</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD KAMETI -->
+  <div class="modal-overlay" id="kametiModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Nayi Kameti Shuru Karein</h3>
+        <button type="button" class="btn-close-modal" data-close="kametiModal">✕</button>
+      </div>
+      <form id="kametiForm">
+        <div class="form-group">
+          <label for="kametiName">Kameti Ka Naam</label>
+          <input type="text" id="kametiName" class="form-input" placeholder="Maslan: Mohalla Kameti 1 Lakh" required>
+        </div>
+        <div class="form-group">
+          <label for="kametiTotal">Kul Raqam (Total Pool)</label>
+          <input type="number" id="kametiTotal" class="form-input" placeholder="100000" min="1" required>
+        </div>
+        <div class="form-group">
+          <label for="kametiMonthly">Maahana Qist (Monthly Installment)</label>
+          <input type="number" id="kametiMonthly" class="form-input" placeholder="10000" min="1" required>
+        </div>
+        <div class="form-group">
+          <label for="kametiMonths">Kul Mahinay (Total Duration)</label>
+          <input type="number" id="kametiMonths" class="form-input" placeholder="10" min="1" required>
+        </div>
+        <div class="form-group">
+          <label for="kametiTurn">Meri Baari Ka Mahina (My Turn / Optional)</label>
+          <input type="number" id="kametiTurn" class="form-input" placeholder="Maslan: 5 (5th month)">
+        </div>
+        <div class="form-group">
+          <label for="kametiStart">Shuru Hone Ki Tareekh</label>
+          <input type="date" id="kametiStart" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label for="kametiNote">Tafseel / Note</label>
+          <input type="text" id="kametiNote" class="form-input" placeholder="Organizer ka naam waghera">
+        </div>
+        <button type="submit" class="btn-primary">Kameti Save Karein</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD FINANCE ENTRY -->
+  <div class="modal-overlay" id="financeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Ghar Ki Aamdan ya Kharch</h3>
+        <button type="button" class="btn-close-modal" data-close="financeModal">✕</button>
+      </div>
+      <form id="financeForm">
+        <div class="form-group">
+          <label for="finType">Qisam</label>
+          <select id="finType" class="form-select" required>
+            <option value="expense">Kharch (Expense)</option>
+            <option value="income">Aamdan (Income)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="finCategory">Category</label>
+          <input type="text" id="finCategory" class="form-input" placeholder="Maslan: Rashan, Bijli Bill, Salary, Dawaai, Fee" required list="catList">
+          <datalist id="catList">
+            <option value="Salary (Tankhwah)">
+            <option value="Rashan & Sauda">
+            <option value="Bijli Ka Bill">
+            <option value="Gas / Cylinder">
+            <option value="Internet / Mobile Load">
+            <option value="Bacho Ki School Fee">
+            <option value="Dawaai & Ilaj">
+            <option value="Gari Petrol / Sawari">
+            <option value="Karaya Makan">
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label for="finAmount">Raqam (Rupees)</label>
+          <input type="number" id="finAmount" class="form-input" placeholder="Maslan: 3500" min="1" required>
+        </div>
+        <div class="form-group">
+          <label for="finNote">Wazahat / Note (Optional)</label>
+          <input type="text" id="finNote" class="form-input" placeholder="Tafseel likhein">
+        </div>
+        <button type="submit" class="btn-primary">Record Save Karein</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast-notice" id="toastNotice">Khata save ho gaya</div>
+
+  <!-- Config and App scripts -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
