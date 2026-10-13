@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Apna Khata Advance - Clean Migration & Schema Setup (v3 - Month Rollover & Profile Delete)
+-- Apna Khata Advance - Clean Migration & Schema Setup (v4 - Preserved Audit & Soft Profile)
 -- ==============================================================================
 
 create extension if not exists pgcrypto;
@@ -32,17 +32,22 @@ create table public.families (
   created_at timestamptz not null default now()
 );
 
--- 2. Users Table
+-- 2. Users Table (with Soft Delete deleted_at & role)
 create table public.app_users (
   id uuid primary key default gen_random_uuid(),
-  phone text unique not null,
+  phone text not null,
   name text not null,
   password_hash text not null,
   family_id uuid references public.families(id) on delete set null,
   relation_role text default 'Member',
+  is_active boolean not null default true,
+  deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Unique phone only on active users
+create unique index idx_unique_active_phone on public.app_users(phone) where is_active = true;
 
 -- 3. User Sessions Table
 create table public.app_sessions (
@@ -53,10 +58,12 @@ create table public.app_sessions (
   expires_at timestamptz not null default (now() + interval '90 days')
 );
 
--- 4. Khata Entries (Personal Private vs Family Shared)
+-- 4. Khata Entries (Data preserved with user_name snapshot even if user leaves)
 create table public.khata_entries (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.app_users(id) on delete cascade,
+  user_id uuid references public.app_users(id) on delete set null,
+  user_name text not null,
+  user_role text default 'Member',
   family_id uuid references public.families(id) on delete cascade,
   is_private boolean not null default true,
   person_name text not null,
@@ -71,7 +78,8 @@ create table public.khata_entries (
 -- 5. Committee / Kameti Groups
 create table public.committees (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.app_users(id) on delete cascade,
+  user_id uuid references public.app_users(id) on delete set null,
+  user_name text not null,
   family_id uuid references public.families(id) on delete cascade,
   is_private boolean not null default false,
   name text not null,
@@ -89,7 +97,8 @@ create table public.committees (
 create table public.committee_records (
   id uuid primary key default gen_random_uuid(),
   committee_id uuid not null references public.committees(id) on delete cascade,
-  user_id uuid not null references public.app_users(id) on delete cascade,
+  user_id uuid references public.app_users(id) on delete set null,
+  user_name text not null,
   record_type text not null check (record_type in ('payment_made', 'payout_received')),
   month_number integer not null check (month_number > 0),
   amount numeric(12, 2) not null check (amount > 0),
@@ -98,10 +107,12 @@ create table public.committee_records (
   created_at timestamptz not null default now()
 );
 
--- 7. Household Finance (Aamdan & Kharch)
+-- 7. Household Finance (Aamdan & Kharch - Preserved)
 create table public.household_finance (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.app_users(id) on delete cascade,
+  user_id uuid references public.app_users(id) on delete set null,
+  user_name text not null,
+  user_role text default 'Member',
   family_id uuid references public.families(id) on delete cascade,
   is_private boolean not null default false,
   finance_type text not null check (finance_type in ('income', 'expense')),
@@ -112,12 +123,12 @@ create table public.household_finance (
   created_at timestamptz not null default now()
 );
 
--- 8. Monthly Rollovers / Purana Hisaab & Savings forward
+-- 8. Monthly Rollovers
 create table public.month_rollovers (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.app_users(id) on delete cascade,
+  user_id uuid references public.app_users(id) on delete set null,
   family_id uuid references public.families(id) on delete cascade,
-  month_str text not null, -- e.g. "2026-10"
+  month_str text not null,
   carried_forward_savings numeric(12, 2) not null default 0,
   note text,
   created_at timestamptz not null default now()
@@ -169,7 +180,7 @@ begin
   v_user_id := public.current_app_user_id();
   if v_user_id is null then return null; end if;
 
-  select family_id into v_fam_id from public.app_users where id = v_user_id;
+  select family_id into v_fam_id from public.app_users where id = v_user_id and is_active = true;
   return v_fam_id;
 end;
 $$;
@@ -206,7 +217,7 @@ begin
     return jsonb_build_object('success', false, 'error', 'Password kam az kam 4 digits/characters ka ho');
   end if;
 
-  if exists (select 1 from public.app_users where phone = clean_phone) then
+  if exists (select 1 from public.app_users where phone = clean_phone and is_active = true) then
     return jsonb_build_object('success', false, 'error', 'Yeh mobile number pehle se registered hai. Login karein.');
   end if;
 
@@ -224,8 +235,8 @@ begin
     returning id into v_family_id;
   end if;
 
-  insert into public.app_users (phone, name, password_hash, family_id, relation_role)
-  values (clean_phone, trim(input_name), crypt(input_password, gen_salt('bf', 8)), v_family_id, coalesce(nullif(trim(input_role), ''), 'Member'))
+  insert into public.app_users (phone, name, password_hash, family_id, relation_role, is_active)
+  values (clean_phone, trim(input_name), crypt(input_password, gen_salt('bf', 8)), v_family_id, coalesce(nullif(trim(input_role), ''), 'Member'), true)
   returning id into v_user_id;
 
   select family_name, invite_code into v_fam from public.families where id = v_family_id;
@@ -264,7 +275,7 @@ begin
 
   select id, phone, name, password_hash, family_id, relation_role into v_user
   from public.app_users
-  where phone = clean_phone;
+  where phone = clean_phone and is_active = true;
 
   if v_user.id is null or v_user.password_hash != crypt(input_password, v_user.password_hash) then
     return jsonb_build_object('success', false, 'error', 'Mobile number ya password ghalat hai');
@@ -306,7 +317,7 @@ begin
     return jsonb_build_object('authenticated', false);
   end if;
 
-  select id, phone, name, family_id, relation_role into v_user from public.app_users where id = v_user_id;
+  select id, phone, name, family_id, relation_role into v_user from public.app_users where id = v_user_id and is_active = true;
   if v_user.id is null then
     return jsonb_build_object('authenticated', false);
   end if;
@@ -345,17 +356,18 @@ begin
     'name', name,
     'phone', phone,
     'role', relation_role,
+    'is_active', is_active,
     'joined_at', created_at
   )) into members
   from public.app_users
-  where family_id = v_fam_id
+  where family_id = v_fam_id and is_active = true
   order by created_at asc;
 
   return coalesce(members, '[]'::jsonb);
 end;
 $$;
 
--- RPC: Delete Own Profile
+-- RPC: Soft Delete Profile (User account deactivated, historical family data preserved)
 create or replace function public.app_delete_profile()
 returns jsonb
 language plpgsql
@@ -369,12 +381,17 @@ begin
     return jsonb_build_object('success', false, 'error', 'Session expire ho gaya hai');
   end if;
 
-  delete from public.app_users where id = v_user_id;
+  -- Deactivate user so they can re-register if needed, but historical shared records remain intact
+  update public.app_users
+  set is_active = false, deleted_at = now()
+  where id = v_user_id;
+
+  delete from public.app_sessions where user_id = v_user_id;
+
   return jsonb_build_object('success', true);
 end;
 $$;
 
--- RPC: Join or Switch Family by Code
 create or replace function public.app_join_family(input_code text)
 returns jsonb
 language plpgsql
@@ -438,7 +455,6 @@ alter table public.committee_records enable row level security;
 alter table public.household_finance enable row level security;
 alter table public.month_rollovers enable row level security;
 
--- Policies
 create policy fam_select on public.families for select using (id = public.current_app_family_id());
 create policy users_select on public.app_users for select using (family_id = public.current_app_family_id());
 
@@ -446,30 +462,36 @@ create policy khata_select on public.khata_entries for select using (
   (user_id = public.current_app_user_id()) or
   (is_private = false and family_id = public.current_app_family_id())
 );
-create policy khata_insert on public.khata_entries for insert with check (user_id = public.current_app_user_id());
-create policy khata_update on public.khata_entries for update using (user_id = public.current_app_user_id());
-create policy khata_delete on public.khata_entries for delete using (user_id = public.current_app_user_id());
+create policy khata_insert on public.khata_entries for insert with check (
+  (user_id = public.current_app_user_id()) or (family_id = public.current_app_family_id())
+);
+create policy khata_update on public.khata_entries for update using (
+  (user_id = public.current_app_user_id()) or (family_id = public.current_app_family_id())
+);
+create policy khata_delete on public.khata_entries for delete using (
+  (user_id = public.current_app_user_id()) or (family_id = public.current_app_family_id())
+);
 
 create policy comm_select on public.committees for select using (
   (user_id = public.current_app_user_id()) or
   (is_private = false and family_id = public.current_app_family_id())
 );
-create policy comm_insert on public.committees for insert with check (user_id = public.current_app_user_id());
-create policy comm_update on public.committees for update using (user_id = public.current_app_user_id());
-create policy comm_delete on public.committees for delete using (user_id = public.current_app_user_id());
+create policy comm_insert on public.committees for insert with check (family_id = public.current_app_family_id());
+create policy comm_update on public.committees for update using (family_id = public.current_app_family_id());
+create policy comm_delete on public.committees for delete using (family_id = public.current_app_family_id());
 
 create policy hf_select on public.household_finance for select using (
   (user_id = public.current_app_user_id()) or
   (is_private = false and family_id = public.current_app_family_id())
 );
-create policy hf_insert on public.household_finance for insert with check (user_id = public.current_app_user_id());
-create policy hf_update on public.household_finance for update using (user_id = public.current_app_user_id());
-create policy hf_delete on public.household_finance for delete using (user_id = public.current_app_user_id());
+create policy hf_insert on public.household_finance for insert with check (family_id = public.current_app_family_id());
+create policy hf_update on public.household_finance for update using (family_id = public.current_app_family_id());
+create policy hf_delete on public.household_finance for delete using (family_id = public.current_app_family_id());
 
-create policy roll_select on public.month_rollovers for select using (user_id = public.current_app_user_id());
-create policy roll_insert on public.month_rollovers for insert with check (user_id = public.current_app_user_id());
-create policy roll_update on public.month_rollovers for update using (user_id = public.current_app_user_id());
-create policy roll_delete on public.month_rollovers for delete using (user_id = public.current_app_user_id());
+create policy roll_select on public.month_rollovers for select using (family_id = public.current_app_family_id());
+create policy roll_insert on public.month_rollovers for insert with check (family_id = public.current_app_family_id());
+create policy roll_update on public.month_rollovers for update using (family_id = public.current_app_family_id());
+create policy roll_delete on public.month_rollovers for delete using (family_id = public.current_app_family_id());
 
 -- Permissions
 grant usage on schema public to anon, authenticated;

@@ -347,10 +347,22 @@
             </div>
           </div>
 
-          <div style="border-top: 1px solid var(--border); padding-top: 20px;">
-            <h4 style="font-size: 15px; font-weight: 800; color: var(--danger); margin-bottom: 6px;">Delete Profile (Permanent)</h4>
+          <!-- OFFLINE MOBILE BACKUP SECTION -->
+          <div style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 24px;">
+            <h4 style="font-size: 15px; font-weight: 800; color: var(--primary); margin-bottom: 6px;">📥 Mobile Offline Backup (Safe Storage)</h4>
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
-              Agar aap apni profile delete karna chahte hain to is se aap ka account aur zaati entries mukammal tor par delete ho jayengi.
+              Agar kisi waqt app kharab ho jaye ya offline dekhna ho, to apna mukammal khata aik click par mobile mein download kar ke mehfooz karein.
+            </p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;" id="btnDownloadBackupJson">📥 JSON Backup Download</button>
+              <button type="button" class="month-nav-btn" style="padding: 10px 18px; font-size: 13px;" id="btnDownloadBackupCsv">📊 CSV / Excel Sheet</button>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 20px;">
+            <h4 style="font-size: 15px; font-weight: 800; color: var(--danger); margin-bottom: 6px;">Delete Profile (Account Band Karein)</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Profile delete hone par aap ka login band ho jayega, lekin aap ki enter ki hui <strong>Family Entries safe rahengi</strong> taake ghar ka hisaab kharab na ho.
             </p>
             <button type="button" style="background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--danger); padding: 12px 20px; border-radius: var(--radius-md); font-weight: 800; cursor: pointer;" id="btnDeleteProfile">Apni Profile Delete Karein</button>
           </div>

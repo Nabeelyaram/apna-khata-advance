@@ -569,33 +569,38 @@
   }
 
   // ----------------------------------------------------------------------------
-  // FAMILY TREE
+  // FAMILY TREE & MEMBER DIRECTORY
   // ----------------------------------------------------------------------------
   function renderFamilyMembers() {
     const list = $("familyMemberList");
     if (!list) return;
 
     if (!state.familyMembers.length) {
-      list.innerHTML = `<p class="empty-state">Koi member shamil nahi hai.</p>`;
+      list.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><p>Abhi koi doosra member shamil nahi hai. Apne ghar walon ko Family Code share karein.</p></div>`;
       return;
     }
 
     list.innerHTML = state.familyMembers.map((m) => {
       const isMe = m.id === state.user.id;
+      const joinedStr = m.joined_at ? formatDate(m.joined_at) : "";
       return `
-        <div class="stat-card" style="padding:16px;">
-          <div class="user-avatar" style="width:48px; height:48px; font-size:20px;">
+        <div class="stat-card" style="padding:16px; border-left: 4px solid var(--primary);">
+          <div class="user-avatar" style="width:48px; height:48px; font-size:20px; flex-shrink: 0;">
             ${m.name.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <h4 style="font-size:16px; font-weight:800;">
-              ${escapeHtml(m.name)} ${isMe ? `<span style="font-size:11px; color:var(--primary);">(Aap)</span>` : ""}
-            </h4>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-              Role: <strong style="color:var(--text-main);">${escapeHtml(m.role || "Member")}</strong>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+              <h4 style="font-size:15px; font-weight:800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${escapeHtml(m.name)}
+              </h4>
+              ${isMe ? `<span style="font-size:10px; background:var(--primary-glow); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:800;">Aap</span>` : ""}
             </div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
-              Phone: ${m.phone}
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+              Rishta: <strong style="color:var(--text-main);">${escapeHtml(m.role || "Member")}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size:11px; color:var(--text-muted); margin-top:4px;">
+              <span>📱 ${m.phone}</span>
+              ${joinedStr ? `<span>Shamil: ${joinedStr}</span>` : ""}
             </div>
           </div>
         </div>`;
@@ -675,6 +680,8 @@
         method: "POST",
         body: JSON.stringify({
           user_id: state.user.id,
+          user_name: state.user.name,
+          user_role: state.user.role || "Member",
           family_id: state.user.family_id,
           is_private: isPrivate,
           person_name: person,
@@ -756,6 +763,7 @@
         method: "POST",
         body: JSON.stringify({
           user_id: state.user.id,
+          user_name: state.user.name,
           family_id: state.user.family_id,
           name,
           total_amount: total,
@@ -837,6 +845,8 @@
         method: "POST",
         body: JSON.stringify({
           user_id: state.user.id,
+          user_name: state.user.name,
+          user_role: state.user.role || "Member",
           family_id: state.user.family_id,
           finance_type: type,
           category: cat,
@@ -1010,9 +1020,71 @@
     $("kametiForm").addEventListener("submit", handleAddCommittee);
     $("financeForm").addEventListener("submit", handleAddFinance);
 
+    // Offline Mobile Backup Downloads
+    $("btnDownloadBackupJson")?.addEventListener("click", downloadBackupJson);
+    $("btnDownloadBackupCsv")?.addEventListener("click", downloadBackupCsv);
+
     if ($("kametiStart")) {
       $("kametiStart").value = new Date().toISOString().slice(0, 10);
     }
+  }
+
+  // ----------------------------------------------------------------------------
+  // OFFLINE MOBILE BACKUP GENERATORS
+  // ----------------------------------------------------------------------------
+  function downloadBackupJson() {
+    const backupData = {
+      appName: "Apna Khata Advance",
+      exportedAt: new Date().toISOString(),
+      user: state.user,
+      familyMembers: state.familyMembers,
+      khataEntries: state.khataEntries,
+      committees: state.committees,
+      finances: state.finances,
+      rollovers: state.rollovers
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Apna-Khata-Backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    toast("JSON Backup mobile me save ho gaya!");
+  }
+
+  function downloadBackupCsv() {
+    const headers = ["Qisam", "Tareekh / Waqt", "Shakhs ya Category", "Raqam", "Type", "Note", "Entered By"];
+    const rows = [
+      headers,
+      ...state.khataEntries.map((k) => [
+        k.is_private ? "Zaati Khata" : "Family Khata",
+        formatDateTime(k.entry_date),
+        k.person_name,
+        k.amount,
+        k.entry_type,
+        k.note || "",
+        k.user_name || "Member"
+      ]),
+      ...state.finances.map((f) => [
+        "Ghar Ka Budget",
+        formatDateTime(f.entry_date),
+        f.category,
+        f.amount,
+        f.finance_type === "income" ? "Aamdan" : "Kharch",
+        f.note || "",
+        f.user_name || "Member"
+      ])
+    ];
+
+    const csvContent = "\ufeff" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Apna-Khata-Sheet-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    toast("Excel / CSV sheet download ho gayi!");
   }
 
   initTheme();
