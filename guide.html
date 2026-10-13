@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ur" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apna Khata Advance - User Guide & Rahnumai</title>
+  <link rel="icon" type="image/png" href="app-icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root {
+      --guide-max-w: 860px;
+    }
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+    }
+    .guide-container {
+      max-width: var(--guide-max-w);
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+    .guide-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .guide-badge {
+      display: inline-block;
+      background: var(--primary-glow);
+      color: var(--primary);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .guide-title {
+      font-size: 28px;
+      font-weight: 900;
+      margin: 0 0 6px;
+      background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .guide-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .guide-banner-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .guide-banner-img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .guide-actions-bar {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--bg-card-subtle);
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .guide-step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 20px;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .guide-step-card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .step-number-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--primary-gradient);
+      color: #fff;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 14px;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    .step-heading {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: inline-block;
+      vertical-align: middle;
+      margin: 0;
+    }
+    .step-content {
+      margin-top: 14px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .step-content p {
+      margin: 0 0 10px;
+    }
+    .step-list {
+      margin: 0 0 14px;
+      padding-left: 20px;
+    }
+    .step-list li {
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+    .tip-box {
+      background: var(--bg-card-subtle);
+      border-left: 4px solid var(--primary);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 13px;
+      color: var(--text-main);
+      margin-top: 12px;
+    }
+    .tip-box.blue {
+      border-left-color: var(--accent);
+    }
+    .tip-box.amber {
+      border-left-color: #f59e0b;
+    }
+    .highlight-pill {
+      background: var(--primary-glow);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .guide-actions-bar, .theme-toggle-btn {
+        display: none !important;
+      }
+      .guide-step-card {
+        border: 1px solid #ddd !important;
+        background: #fff !important;
+        page-break-inside: avoid;
+      }
+      .guide-title {
+        -webkit-text-fill-color: #047857 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="guide-container">
+
+    <!-- HEADER -->
+    <header class="guide-header">
+      <span class="guide-badge">Mukammal Rahnumai & Tareeqa-e-Istemaal</span>
+      <h1 class="guide-title">Apna Khata Advance</h1>
+      <p class="guide-sub">Personal Ledger, Family Tree & Digital Hisaab Kitab User Manual</p>
+    </header>
+
+    <!-- ACTION BAR -->
+    <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;">
+      <a href="index.html" class="btn-primary" style="text-decoration:none; width:auto; padding:10px 24px; font-size:13px; font-weight:800;">
+        📱 Wapas App Par Jayein
+      </a>
+      <button type="button" class="month-nav-btn" onclick="window.print()" style="padding:10px 20px; font-size:13px; font-weight:800;">
+        🖨️ Guide Print / PDF Save Karein
+      </button>
+    </div>
+
+    <!-- STEP 1: INSTALL APP -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">1</span>
+        <h2 class="step-heading">Mobile Mein App Install Karna (Bina PlayStore Ke)</h2>
+      </div>
+      <div class="step-content">
+        <p>Yeh app aik modern Progressive Web App (PWA) hai, jo mobile ki memory ko zaya kiye baghair seedha install ho jati hai:</p>
+        <ul class="step-list">
+          <li><strong>Android Mobile:</strong> Chrome browser mein link open karein. Upar 3 dots (⋮) par click karein aur <strong>"Install app"</strong> ya <strong>"Add to Home screen"</strong> select karein.</li>
+          <li><strong>iPhone (Apple):</strong> Safari browser mein open karein. Neeche Share button (⎋) daba kar <strong>"Add to Home Screen"</strong> par tap karein.</li>
+        </ul>
+        <div class="tip-box">
+          💡 <strong>Fayda:</strong> App aap ke mobile par icon ban kar aa jayegi aur agay se bina browser search kiye 1-click par open hogi.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: REGISTER HEAD & CREATE FAMILY -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">2</span>
+        <h2 class="step-heading">Pehli Dafa Account & Family Group Bananna (Head / Sarbarah)</h2>
+      </div>
+      <div class="step-content">
+        <p>Agar aap pehli dafa ghar ka khata shuru kar rahe hain:</p>
+        <ul class="step-list">
+          <li>App open kar ke <strong>"Naya Account Banayein"</strong> par click karein.</li>
+          <li>Apna <strong>Mobile Number</strong> (maslan: <code>03091195695</code>), apna <strong>Naam</strong>, aur <strong>Password</strong> darj karein.</li>
+          <li><strong>Family Ka Naam:</strong> Apne ghar ya khandaan ka naam likhein (maslan: <em>Malik Family</em> ya <em>Khan House</em>).</li>
+          <li>Apna Rishta chunein (maslan: <em>Walid / Head</em>).</li>
+          <li><strong>"Profile Banayein"</strong> par click karte hi aap ka account ban jayega aur aap ko aik <strong>6-Digit Family Invite Code</strong> (maslan: <code>915964</code>) mil jayega.</li>
+        </ul>
+        <div class="tip-box blue">
+          🔑 <strong>Ahem Point:</strong> Yeh 6-digit Invite Code apne ghar walon (bhai, walid, bachon) ko share karein taake wo aap ki family mein shamil ho sakein.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: FAMILY TREE -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">3</span>
+        <h2 class="step-heading">Ghar Walon Ka Shamil Hona (Family Tree Directory)</h2>
+      </div>
+      <div class="step-content">
+        <p>Ghar ke doosre afraad ko shamil karne ka intehai aasan tareeqa:</p>
+        <ul class="step-list">
+          <li>Doosra fard app open kar ke <strong>"Naya Account Banayein"</strong> par click kare.</li>
+          <li>Apna Mobile Number aur Naam likhein.</li>
+          <li><strong>Family Join Code:</strong> Yahan wahi 6-digit code likhein jo Head ko mila tha.</li>
+          <li>Apna rishta chunein (maslan: <em>Bara Bhai, Chota Bhai, Beta, Walida</em>).</li>
+        </ul>
+        <div class="tip-box">
+          🌳 Ab <strong>Family Tree</strong> tab mein sab members ke card, naam, phone number aur role aik sath nazar aayeinge.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: ZAATI PRIVATE KHATA -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">4</span>
+        <h2 class="step-heading">🔒 Zaati Private Khata (Other Khata — 100% Khufia)</h2>
+      </div>
+      <div class="step-content">
+        <p>Yeh hisaab aap ka <strong>zaati wallet</strong> hai jo ghar ke kisi doosre member ko kabhi nazar nahi aayega:</p>
+        <ul class="step-list">
+          <li><strong>3 Grand Total Cards:</strong> Upar baray cards mein saaf likha hoga:
+            <br>• <span class="highlight-pill" style="color:#10b981;">Kul lene hain</span> (Sab logon se)
+            <br>• <span class="highlight-pill" style="color:#3b82f6;">Kul dene hain</span> (Sab logon ko)
+            <br>• <span class="highlight-pill">Net Hisaab</span> (Overall balance).
+          </li>
+          <li><strong>Person Wise Balance:</strong> Har shakhs (maslan: <em>Ali</em>, <em>Usman</em>, <em>Saman Wala</em>) ka alag card banega jis par unka net balance aur status likha hoga.</li>
+          <li>Entry karne ke liye <strong>"+ Zaati Entry Likhein"</strong> par click karein.</li>
+        </ul>
+        <div class="tip-box amber">
+          🛡️ <strong>Pori Privacy:</strong> Yeh record strictly aap ki apni ID se lock hota hai, is liye ghar ka koi doosra member isay nahi dekh sakta.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: FAMILY SHARED KHATA -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">5</span>
+        <h2 class="step-heading">👨‍👩‍👧 Family Shared Khata (Ghar Ka Lena Dena)</h2>
+      </div>
+      <div class="step-content">
+        <p>Agar koi aisi entry hai jo poore ghar ke ilm mein honi chahiye (maslan kisi rishtedar ya dukaandar se ghar ke liye raqam li ya di):</p>
+        <ul class="step-list">
+          <li><strong>Family Khata</strong> tab mein ja kar <strong>"+ Family Entry Likhein"</strong> par click karein.</li>
+          <li><strong>Audit Trail Badge:</strong> Har entry ke neeche darj karne wale ka naam likha hoga:
+            <br><code>👤 Entry darj ki: Muhammad Asad (Chota Bhai)</code>
+          </li>
+          <li>Is se ghar mein kisi kism ki ghalat fehmi ya hisaab ka jhagda nahi hota.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 6: HOUSEHOLD BUDGET & COMPARISON DASHBOARD -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">6</span>
+        <h2 class="step-heading">💰 Ghar Ka Budget & Animated Maahana Muqabla</h2>
+      </div>
+      <div class="step-content">
+        <p>Ghar ki aamdan aur kharchey ka hisaab rakhne ka tareeqa:</p>
+        <ul class="step-list">
+          <li><strong>Ghar Ka Budget</strong> tab mein ja kar <strong>Aamdan (Income)</strong> aur <strong>Kharch (Expense)</strong> darj karein (maslan: Tankhwah, Rashan, Bijli Bill, School Fee).</li>
+          <li><strong>Animated Dashboard:</strong> Main screen par animated bars aamdan aur kharche ka muqabla karke dikhayengi ke kitni bachat bachi.</li>
+          <li><strong>Month Rollover:</strong> Mahina khatam hone par app pochay gi ke unspent bachat aglay mahine ke balance mein shamil karni hai ya nahi.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 7: KAMETI TRACKER -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">7</span>
+        <h2 class="step-heading">🤝 Kameti / Committee Tracker</h2>
+      </div>
+      <div class="step-content">
+        <p>Agar aap ne ya ghar walon ne koi committee dali hui hai:</p>
+        <ul class="step-list">
+          <li><strong>Committee / Kameti</strong> tab mein <strong>"+ Nayi Kameti Shuru Karein"</strong> dabayein.</li>
+          <li>Kul Raqam (Total Pool), Maahana Qist, Kul Mahinay, aur <strong>"Meri Baari Ka Mahina"</strong> darj karein.</li>
+          <li>App har mahine track karegi ke kitni qistain ada ho chuki hain aur committee kab milni hai.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 8: EDIT & DELETE MISTAKES -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">8</span>
+        <h2 class="step-heading">✏️ Ghalat Entry Ko Theek Karna (Edit & Delete)</h2>
+      </div>
+      <div class="step-content">
+        <p>Agar koi raqam ya naam ghalti se enter ho jaye:</p>
+        <ul class="step-list">
+          <li>Har entry card ke right side par do buttons hain:
+            <br>• <strong>`✏️ Edit`:</strong> Click karne par wahi form khul jata hai. Raqam ya note theek kar ke <em>"Update Karein"</em> dabayein.
+            <br>• <strong>`🗑️ Delete`:</strong> Click karne par entry mukammal tor par delete ho jati hai aur grand totals update ho jatay hain.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 9: PROFILE PHOTO & PASSWORD -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">9</span>
+        <h2 class="step-heading">📷 Profile Photo Lagana aur 🔐 Password Badlna</h2>
+      </div>
+      <div class="step-content">
+        <p>Apni profile ko personalize aur secure karein:</p>
+        <ul class="step-list">
+          <li><strong>Settings</strong> tab mein ja kar <strong>`📷 Tasveer Lagayein`</strong> dabayein aur camera ya gallery se photo select karein. Yeh photo header aur Family Tree mein nazar aayegi.</li>
+          <li><strong>Password Badlna:</strong> Settings mein <em>"Password Tabdeel Karein"</em> form mein purana password daal kar naya password set kar sakte hain.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- STEP 10: OFFLINE BACKUPS -->
+    <div class="guide-step-card">
+      <div>
+        <span class="step-number-badge">10</span>
+        <h2 class="step-heading">📥 Mobile Mein Offline Backups (Excel & PDF)</h2>
+      </div>
+      <div class="step-content">
+        <p>Khata kabhi zaya na ho, is ke liye Settings tab mein 1-click downloads mojood hain:</p>
+        <ul class="step-list">
+          <li><strong>📄 Complete PDF Report:</strong> Saaf-suthri A4 size PDF report download karein, jo mobile mein khul sakti hai ya print ho sakti hai.</li>
+          <li><strong>📊 Excel Workbook (.xls):</strong> Excel aur Google Sheets mein khulne wali file download karein.</li>
+          <li><strong>📥 JSON Data Backup:</strong> Complete raw data copy mobile mein mehfooz karein.</li>
+        </ul>
+        <div class="tip-box">
+          ✅ <strong>Behtareen Mashwara:</strong> Har mahine ke aakhir mein PDF ya Excel backup download kar ke WhatsApp ya Google Drive par save kar lein.
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px;">
+      <p>Apna Khata Advance — Mehfooz, Asaan aur Pure Khandaan Ka Digital Ledger</p>
+      <a href="index.html" class="btn-primary" style="text-decoration:none; display:inline-block; width:auto; padding:10px 24px; font-weight:800; margin-top:8px;">
+        📱 App Kholein
+      </a>
+    </div>
+
+  </div>
+
+</body>
+</html>
