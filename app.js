@@ -185,16 +185,9 @@
           logout();
         }
       })
-      .catch(() => {
-        const cached = localStorage.getItem(USER_KEY);
-        if (cached) {
-          try {
-            state.user = JSON.parse(cached);
-            showApp();
-            return;
-          } catch (_) {}
-        }
-        showAuth();
+      .catch((err) => {
+        console.warn("Session restore error:", err);
+        logout();
       });
   }
 
@@ -323,8 +316,24 @@
     } catch (_) {}
     state.token = "";
     state.user = null;
+    state.familyMembers = [];
+    state.khataEntries = [];
+    state.committees = [];
+    state.finances = [];
+    state.rollovers = [];
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(USER_KEY);
+    sessionStorage.clear();
+
+    // Clear form inputs
+    if ($("loginPhone")) $("loginPhone").value = "";
+    if ($("loginPassword")) $("loginPassword").value = "";
+    if ($("regName")) $("regName").value = "";
+    if ($("regPhone")) $("regPhone").value = "";
+    if ($("regPassword")) $("regPassword").value = "";
+    if ($("regFamilyName")) $("regFamilyName").value = "";
+    if ($("regJoinCode")) $("regJoinCode").value = "";
+
     showAuth();
   }
 
@@ -571,6 +580,9 @@
   // ----------------------------------------------------------------------------
   // FAMILY TREE & MEMBER DIRECTORY
   // ----------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------
+  // FAMILY TREE & MEMBER DIRECTORY
+  // ----------------------------------------------------------------------------
   function renderFamilyMembers() {
     const list = $("familyMemberList");
     if (!list) return;
@@ -581,26 +593,26 @@
     }
 
     list.innerHTML = state.familyMembers.map((m) => {
-      const isMe = m.id === state.user.id;
+      const isMe = state.user && m.id === state.user.id;
       const joinedStr = m.joined_at ? formatDate(m.joined_at) : "";
       return `
-        <div class="stat-card" style="padding:16px; border-left: 4px solid var(--primary);">
-          <div class="user-avatar" style="width:48px; height:48px; font-size:20px; flex-shrink: 0;">
-            ${m.name.charAt(0).toUpperCase()}
+        <div class="stat-card" style="padding:18px; border-left: 4px solid var(--primary); display:flex; align-items:center; gap:14px;">
+          <div class="user-avatar" style="width:52px; height:52px; font-size:22px; flex-shrink: 0;">
+            ${escapeHtml(m.name.charAt(0).toUpperCase())}
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-              <h4 style="font-size:15px; font-weight:800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <h4 style="font-size:16px; font-weight:800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${escapeHtml(m.name)}
               </h4>
               ${isMe ? `<span style="font-size:10px; background:var(--primary-glow); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:800;">Aap</span>` : ""}
             </div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+            <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">
               Rishta: <strong style="color:var(--text-main);">${escapeHtml(m.role || "Member")}</strong>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size:11px; color:var(--text-muted); margin-top:4px;">
-              <span>📱 ${m.phone}</span>
-              ${joinedStr ? `<span>Shamil: ${joinedStr}</span>` : ""}
+            <div style="display: flex; justify-content: space-between; font-size:12px; color:var(--text-muted); margin-top:4px; flex-wrap:wrap; gap:4px;">
+              <span>📱 ${escapeHtml(m.phone)}</span>
+              ${joinedStr ? `<span>📅 Shamil: ${joinedStr}</span>` : ""}
             </div>
           </div>
         </div>`;
@@ -608,8 +620,42 @@
   }
 
   // ----------------------------------------------------------------------------
-  // KHATA VIEWS
+  // KHATA VIEWS (PEOPLE LEDGER & PERSON-WISE BALANCE)
   // ----------------------------------------------------------------------------
+  function updateGrandTotalCards(prefix, entries) {
+    let rec = 0;
+    let pay = 0;
+    entries.forEach((r) => {
+      const amt = Number(r.amount || 0);
+      if (r.entry_type === "receivable") rec += amt;
+      else if (r.entry_type === "payable") pay += amt;
+      else if (r.entry_type === "settlement_received") rec -= amt;
+      else if (r.entry_type === "settlement_paid") pay -= amt;
+    });
+
+    const net = rec - pay;
+    const elRec = $(prefix + "GrandRec");
+    const elPay = $(prefix + "GrandPay");
+    const elNetTitle = $(prefix + "GrandNetTitle");
+    const elNet = $(prefix + "GrandNet");
+
+    if (elRec) elRec.textContent = money(Math.max(0, rec));
+    if (elPay) elPay.textContent = money(Math.max(0, pay));
+
+    if (elNet && elNetTitle) {
+      if (net > 0) {
+        elNetTitle.textContent = "Kul lene hain";
+        elNet.textContent = money(net);
+      } else if (net < 0) {
+        elNetTitle.textContent = "Kul dene hain";
+        elNet.textContent = money(Math.abs(net));
+      } else {
+        elNetTitle.textContent = "Hisaab Barabar";
+        elNet.textContent = money(0);
+      }
+    }
+  }
+
   function renderKhata() {
     const privList = $("privateKhataList");
     const sharedList = $("sharedKhataList");
@@ -618,7 +664,11 @@
     const privEntries = filtered.filter((r) => r.is_private);
     const sharedEntries = filtered.filter((r) => !r.is_private);
 
-    // Render Person Summaries (Maqsood Other Khata Style)
+    // Update 3 Grand Total Stat Cards (Image 1 Style)
+    updateGrandTotalCards("priv", privEntries);
+    updateGrandTotalCards("shared", sharedEntries);
+
+    // Render Person Summaries (Image 2 Style)
     renderPersonSummary("privatePersonSummaryList", privEntries);
     renderPersonSummary("sharedPersonSummaryList", sharedEntries);
 
@@ -648,7 +698,7 @@
     if (!container) return;
 
     if (!entries.length) {
-      container.innerHTML = `<p style="font-size:12px; color:var(--text-muted); grid-column:1/-1;">Koi record mojood nahi.</p>`;
+      container.innerHTML = `<div class="empty-state" style="grid-column:1/-1; padding:24px;"><p>Is period me koi record mojood nahi.</p></div>`;
       return;
     }
 
@@ -668,23 +718,31 @@
     const persons = Object.values(map);
     container.innerHTML = persons.map((p) => {
       const net = p.receivable - p.payable;
-      let statusHtml = "";
+      let statusText = "Hisaab Barabar hai";
+      let isPayable = false;
+      let displayAmt = 0;
+
       if (net > 0) {
-        statusHtml = `<span style="color:var(--success); font-weight:800;">Lene hain: ${money(net)}</span>`;
+        statusText = "Is person se lene hain";
+        displayAmt = net;
       } else if (net < 0) {
-        statusHtml = `<span style="color:var(--danger); font-weight:800;">Dene hain: ${money(Math.abs(net))}</span>`;
-      } else {
-        statusHtml = `<span style="color:var(--text-muted); font-weight:700;">Hisaab Barabar (Rs 0)</span>`;
+        statusText = "Is person ko dene hain";
+        displayAmt = Math.abs(net);
+        isPayable = true;
       }
 
       return `
-        <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <strong style="font-size:14px; color:var(--text-main);">${escapeHtml(p.name)}</strong>
-            <span style="font-size:11px; color:var(--text-muted);">${p.count} entries</span>
+        <div class="person-card">
+          <div>
+            <div class="person-card-name">${escapeHtml(p.name)}</div>
+            <div class="person-card-status">${statusText}</div>
+            <div class="person-card-sub">Current balance · ${p.count} entries</div>
           </div>
-          <div style="font-size:12px; margin-top:2px;">
-            ${statusHtml}
+          <div>
+            <div class="person-card-divider"></div>
+            <div class="person-card-amount ${isPayable ? "payable-amt" : ""}">
+              ${money(displayAmt)}
+            </div>
           </div>
         </div>`;
     }).join("");
@@ -698,7 +756,7 @@
       settlement_paid: { text: "Wapas diye (Adaigi)", cls: "amount-neutral" }
     };
     const info = typeLabels[row.entry_type] || { text: "Khata", cls: "amount-neutral" };
-    const canDelete = row.user_id === state.user.id;
+    const canDelete = state.user && row.user_id === state.user.id;
 
     return `
       <div class="item-card">
@@ -708,8 +766,12 @@
             <span class="${isPrivate ? "tag-private" : "tag-family"}">${isPrivate ? "🔒 Zaati" : "👨‍👩‍👧 Family"}</span>
           </h4>
           <span style="font-size:12px; color:var(--text-muted);">${info.text} · ${formatDateTime(row.entry_date)}</span>
-          ${row.user_name ? `<span style="font-size:11px; color:var(--primary); margin-left:6px;">(By ${escapeHtml(row.user_name)})</span>` : ""}
-          ${row.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">"${escapeHtml(row.note)}"</div>` : ""}
+          ${row.user_name ? `
+            <div class="entry-audit-badge">
+              👤 Entry darj ki: <strong>${escapeHtml(row.user_name)}</strong>
+              <span class="role-tag-pill">${escapeHtml(row.user_role || "Member")}</span>
+            </div>` : ""}
+          ${row.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">"${escapeHtml(row.note)}"</div>` : ""}
         </div>
         <div style="display:flex; align-items:center; gap:14px;">
           <span class="item-amount ${info.cls}">${money(row.amount)}</span>
@@ -891,7 +953,12 @@
           <div>
             <h4 style="font-size:16px; font-weight:800;">${escapeHtml(row.category)}</h4>
             <span style="font-size:12px; color:var(--text-muted);">${isInc ? "Aamdan (Income)" : "Kharch (Expense)"} · ${formatDateTime(row.entry_date)}</span>
-            ${row.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">"${escapeHtml(row.note)}"</div>` : ""}
+            ${row.user_name ? `
+              <div class="entry-audit-badge">
+                👤 Entry darj ki: <strong>${escapeHtml(row.user_name)}</strong>
+                <span class="role-tag-pill">${escapeHtml(row.user_role || "Member")}</span>
+              </div>` : ""}
+            ${row.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">"${escapeHtml(row.note)}"</div>` : ""}
           </div>
           <div style="display:flex; align-items:center; gap:14px;">
             <span class="item-amount ${isInc ? "amount-receivable" : "amount-payable"}">

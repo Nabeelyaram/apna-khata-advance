@@ -14,18 +14,12 @@ drop function if exists public.get_family_members();
 drop function if exists public.app_delete_profile();
 drop function if exists public.app_join_family(text);
 
--- Purane tables drop karein
-drop table if exists public.month_rollovers cascade;
-drop table if exists public.committee_records cascade;
-drop table if exists public.committees cascade;
-drop table if exists public.household_finance cascade;
-drop table if exists public.khata_entries cascade;
-drop table if exists public.app_sessions cascade;
-drop table if exists public.app_users cascade;
-drop table if exists public.families cascade;
+-- ==============================================================================
+-- NON-DESTRUCTIVE SCHEMA (Running this script will NEVER wipe or delete existing data!)
+-- ==============================================================================
 
 -- 1. Family Groups Table
-create table public.families (
+create table if not exists public.families (
   id uuid primary key default gen_random_uuid(),
   family_name text not null,
   invite_code text unique not null,
@@ -33,7 +27,7 @@ create table public.families (
 );
 
 -- 2. Users Table (with Soft Delete deleted_at & role)
-create table public.app_users (
+create table if not exists public.app_users (
   id uuid primary key default gen_random_uuid(),
   phone text not null,
   name text not null,
@@ -46,11 +40,16 @@ create table public.app_users (
   updated_at timestamptz not null default now()
 );
 
+-- Safely add columns if table already existed
+alter table public.app_users add column if not exists relation_role text default 'Member';
+alter table public.app_users add column if not exists is_active boolean not null default true;
+alter table public.app_users add column if not exists deleted_at timestamptz;
+
 -- Unique phone only on active users
-create unique index idx_unique_active_phone on public.app_users(phone) where is_active = true;
+create unique index if not exists idx_unique_active_phone on public.app_users(phone) where is_active = true;
 
 -- 3. User Sessions Table
-create table public.app_sessions (
+create table if not exists public.app_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.app_users(id) on delete cascade,
   token text unique not null,
@@ -59,10 +58,10 @@ create table public.app_sessions (
 );
 
 -- 4. Khata Entries (Data preserved with user_name snapshot even if user leaves)
-create table public.khata_entries (
+create table if not exists public.khata_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.app_users(id) on delete set null,
-  user_name text not null,
+  user_name text not null default '',
   user_role text default 'Member',
   family_id uuid references public.families(id) on delete cascade,
   is_private boolean not null default true,
@@ -75,11 +74,14 @@ create table public.khata_entries (
   created_at timestamptz not null default now()
 );
 
+alter table public.khata_entries add column if not exists user_name text not null default '';
+alter table public.khata_entries add column if not exists user_role text default 'Member';
+
 -- 5. Committee / Kameti Groups
-create table public.committees (
+create table if not exists public.committees (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.app_users(id) on delete set null,
-  user_name text not null,
+  user_name text not null default '',
   family_id uuid references public.families(id) on delete cascade,
   is_private boolean not null default false,
   name text not null,
@@ -94,11 +96,11 @@ create table public.committees (
 );
 
 -- 6. Committee Payments / Payouts
-create table public.committee_records (
+create table if not exists public.committee_records (
   id uuid primary key default gen_random_uuid(),
   committee_id uuid not null references public.committees(id) on delete cascade,
   user_id uuid references public.app_users(id) on delete set null,
-  user_name text not null,
+  user_name text not null default '',
   record_type text not null check (record_type in ('payment_made', 'payout_received')),
   month_number integer not null check (month_number > 0),
   amount numeric(12, 2) not null check (amount > 0),
@@ -108,10 +110,10 @@ create table public.committee_records (
 );
 
 -- 7. Household Finance (Aamdan & Kharch - Preserved)
-create table public.household_finance (
+create table if not exists public.household_finance (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.app_users(id) on delete set null,
-  user_name text not null,
+  user_name text not null default '',
   user_role text default 'Member',
   family_id uuid references public.families(id) on delete cascade,
   is_private boolean not null default false,
@@ -123,8 +125,11 @@ create table public.household_finance (
   created_at timestamptz not null default now()
 );
 
+alter table public.household_finance add column if not exists user_name text not null default '';
+alter table public.household_finance add column if not exists user_role text default 'Member';
+
 -- 8. Monthly Rollovers
-create table public.month_rollovers (
+create table if not exists public.month_rollovers (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.app_users(id) on delete set null,
   family_id uuid references public.families(id) on delete cascade,
@@ -135,10 +140,10 @@ create table public.month_rollovers (
 );
 
 -- Indexes
-create index idx_khata_user_fam on public.khata_entries(user_id, family_id, is_private);
-create index idx_comm_user_fam on public.committees(user_id, family_id);
-create index idx_fin_user_fam on public.household_finance(user_id, family_id);
-create index idx_rollovers on public.month_rollovers(user_id, month_str);
+create index if not exists idx_khata_user_fam on public.khata_entries(user_id, family_id, is_private);
+create index if not exists idx_comm_user_fam on public.committees(user_id, family_id);
+create index if not exists idx_fin_user_fam on public.household_finance(user_id, family_id);
+create index if not exists idx_rollovers on public.month_rollovers(user_id, month_str);
 
 -- ==============================================================================
 -- Security & Auth RPC Functions
@@ -455,9 +460,16 @@ alter table public.committee_records enable row level security;
 alter table public.household_finance enable row level security;
 alter table public.month_rollovers enable row level security;
 
+drop policy if exists fam_select on public.families;
 create policy fam_select on public.families for select using (id = public.current_app_family_id());
+
+drop policy if exists users_select on public.app_users;
 create policy users_select on public.app_users for select using (family_id = public.current_app_family_id());
 
+drop policy if exists khata_select on public.khata_entries;
+drop policy if exists khata_insert on public.khata_entries;
+drop policy if exists khata_update on public.khata_entries;
+drop policy if exists khata_delete on public.khata_entries;
 create policy khata_select on public.khata_entries for select using (
   (user_id = public.current_app_user_id()) or
   (is_private = false and family_id = public.current_app_family_id())
@@ -472,6 +484,10 @@ create policy khata_delete on public.khata_entries for delete using (
   (user_id = public.current_app_user_id()) or (family_id = public.current_app_family_id())
 );
 
+drop policy if exists comm_select on public.committees;
+drop policy if exists comm_insert on public.committees;
+drop policy if exists comm_update on public.committees;
+drop policy if exists comm_delete on public.committees;
 create policy comm_select on public.committees for select using (
   (user_id = public.current_app_user_id()) or
   (is_private = false and family_id = public.current_app_family_id())
@@ -480,6 +496,27 @@ create policy comm_insert on public.committees for insert with check (family_id 
 create policy comm_update on public.committees for update using (family_id = public.current_app_family_id());
 create policy comm_delete on public.committees for delete using (family_id = public.current_app_family_id());
 
+drop policy if exists cr_select on public.committee_records;
+drop policy if exists cr_insert on public.committee_records;
+drop policy if exists cr_update on public.committee_records;
+drop policy if exists cr_delete on public.committee_records;
+create policy cr_select on public.committee_records for select using (
+  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
+);
+create policy cr_insert on public.committee_records for insert with check (
+  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
+);
+create policy cr_update on public.committee_records for update using (
+  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
+);
+create policy cr_delete on public.committee_records for delete using (
+  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
+);
+
+drop policy if exists hf_select on public.household_finance;
+drop policy if exists hf_insert on public.household_finance;
+drop policy if exists hf_update on public.household_finance;
+drop policy if exists hf_delete on public.household_finance;
 create policy hf_select on public.household_finance for select using (
   (user_id = public.current_app_user_id()) or
   (is_private = false and family_id = public.current_app_family_id())
@@ -488,6 +525,10 @@ create policy hf_insert on public.household_finance for insert with check (famil
 create policy hf_update on public.household_finance for update using (family_id = public.current_app_family_id());
 create policy hf_delete on public.household_finance for delete using (family_id = public.current_app_family_id());
 
+drop policy if exists roll_select on public.month_rollovers;
+drop policy if exists roll_insert on public.month_rollovers;
+drop policy if exists roll_update on public.month_rollovers;
+drop policy if exists roll_delete on public.month_rollovers;
 create policy roll_select on public.month_rollovers for select using (family_id = public.current_app_family_id());
 create policy roll_insert on public.month_rollovers for insert with check (family_id = public.current_app_family_id());
 create policy roll_update on public.month_rollovers for update using (family_id = public.current_app_family_id());

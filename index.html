@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Apna Khata Advance - Luxury Financial Management</title>
   <meta name="theme-color" content="#0b0f19">
   <link rel="manifest" href="manifest.webmanifest">
@@ -272,44 +275,102 @@
 
       <!-- VIEW 3: ZAATI PRIVATE KHATA -->
       <section id="viewPrivateKhata" class="view-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <!-- PEOPLE LEDGER HEADER (IMAGE 1 STYLE) -->
+        <div class="people-ledger-header">
           <div>
-            <h3 style="font-size: 18px; font-weight: 800;">🔒 Zaati Private Khata</h3>
-            <p style="font-size: 12px; color: var(--danger); margin-top: 3px;">
-              Yeh 100% confidential hai — family ka koi bhi member isay nahi dekh sakta, sirf aap dekh sakte hain.
-            </p>
+            <div class="section-badge">PEOPLE LEDGER</div>
+            <h2 class="people-ledger-title">Other Khata</h2>
+            <p class="people-ledger-subtitle">Baaki logon se lene aur un ko dene wale paison ka alag hisaab.</p>
           </div>
-          <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openPrivateKhataBtn">+ Zaati Entry Likhein</button>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="badge-pill-orange">Har person ka separate balance</span>
+            <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openPrivateKhataBtn">+ Zaati Entry Likhein</button>
+          </div>
         </div>
 
-        <!-- PERSON-WISE BALANCE BREAKDOWN (MAQSOOD OTHER KHATA STYLE) -->
-        <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; margin-bottom:18px;">
-          <h4 style="font-size:14px; font-weight:800; margin-bottom:12px; color:var(--primary);">👤 Har Shakhs Ka Alag Balance (Grand Total Hisaab)</h4>
-          <div id="privatePersonSummaryList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px;"></div>
+        <!-- 3 GRAND TOTAL CARDS (IMAGE 1 STYLE) -->
+        <div class="ledger-grand-total-grid">
+          <div class="card-ledger-stat">
+            <span class="card-ledger-label">Kul lene hain</span>
+            <div class="card-ledger-val val-green" id="privGrandRec">Rs 0</div>
+            <span class="card-ledger-sub">Sab logon se</span>
+          </div>
+
+          <div class="card-ledger-stat">
+            <span class="card-ledger-label">Kul dene hain</span>
+            <div class="card-ledger-val val-blue" id="privGrandPay">Rs 0</div>
+            <span class="card-ledger-sub">Sab logon ko</span>
+          </div>
+
+          <div class="card-ledger-stat net-card">
+            <span class="card-ledger-label" id="privGrandNetTitle">Kul dene hain</span>
+            <div class="card-ledger-val" id="privGrandNet">Rs 0</div>
+            <span class="card-ledger-sub">Net total</span>
+          </div>
         </div>
 
-        <div id="privateKhataList" class="card-list"></div>
+        <!-- PERSON WISE BALANCE (IMAGE 2 STYLE) -->
+        <div style="margin-top: 10px; margin-bottom: 24px;">
+          <div class="section-badge">PERSON WISE BALANCE</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-bottom: 14px;">Har person ka total</h3>
+          <div id="privatePersonSummaryList" class="person-cards-grid"></div>
+        </div>
+
+        <!-- TRANSACTION HISTORY LIST -->
+        <div style="margin-top: 10px;">
+          <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px; color: var(--text-main);">📋 Mukammal Zaati Entries (History)</h4>
+          <div id="privateKhataList" class="card-list"></div>
+        </div>
       </section>
 
       <!-- VIEW 4: FAMILY SHARED KHATA -->
       <section id="viewSharedKhata" class="view-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <!-- PEOPLE LEDGER HEADER (IMAGE 1 STYLE) -->
+        <div class="people-ledger-header">
           <div>
-            <h3 style="font-size: 18px; font-weight: 800;">👨‍👩‍👧 Family Shared Khata</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
-              Gharane ka mushtarka khata — yahan har member ka likha hua lain dain share hota hai
-            </p>
+            <div class="section-badge">PEOPLE LEDGER (FAMILY)</div>
+            <h2 class="people-ledger-title">Family Shared Khata</h2>
+            <p class="people-ledger-subtitle">Gharane ka mushtarka khata — har member ka likha hua lain dain share hota hai.</p>
           </div>
-          <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openSharedKhataBtn">+ Family Entry Likhein</button>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="badge-pill-orange">Har person ka separate balance</span>
+            <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openSharedKhataBtn">+ Family Entry Likhein</button>
+          </div>
         </div>
 
-        <!-- PERSON-WISE BALANCE BREAKDOWN -->
-        <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; margin-bottom:18px;">
-          <h4 style="font-size:14px; font-weight:800; margin-bottom:12px; color:var(--primary);">👥 Family Members & Persons Ka Net Hisaab</h4>
-          <div id="sharedPersonSummaryList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px;"></div>
+        <!-- 3 GRAND TOTAL CARDS (IMAGE 1 STYLE) -->
+        <div class="ledger-grand-total-grid">
+          <div class="card-ledger-stat">
+            <span class="card-ledger-label">Kul lene hain</span>
+            <div class="card-ledger-val val-green" id="sharedGrandRec">Rs 0</div>
+            <span class="card-ledger-sub">Sab logon se</span>
+          </div>
+
+          <div class="card-ledger-stat">
+            <span class="card-ledger-label">Kul dene hain</span>
+            <div class="card-ledger-val val-blue" id="sharedGrandPay">Rs 0</div>
+            <span class="card-ledger-sub">Sab logon ko</span>
+          </div>
+
+          <div class="card-ledger-stat net-card">
+            <span class="card-ledger-label" id="sharedGrandNetTitle">Kul dene hain</span>
+            <div class="card-ledger-val" id="sharedGrandNet">Rs 0</div>
+            <span class="card-ledger-sub">Net total</span>
+          </div>
         </div>
 
-        <div id="sharedKhataList" class="card-list"></div>
+        <!-- PERSON WISE BALANCE (IMAGE 2 STYLE) -->
+        <div style="margin-top: 10px; margin-bottom: 24px;">
+          <div class="section-badge">PERSON WISE BALANCE</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-bottom: 14px;">Har person ka total</h3>
+          <div id="sharedPersonSummaryList" class="person-cards-grid"></div>
+        </div>
+
+        <!-- TRANSACTION HISTORY LIST -->
+        <div style="margin-top: 10px;">
+          <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 12px; color: var(--text-main);">📋 Mukammal Family Entries (History)</h4>
+          <div id="sharedKhataList" class="card-list"></div>
+        </div>
       </section>
 
       <!-- VIEW 5: COMMITTEE / KAMETI -->

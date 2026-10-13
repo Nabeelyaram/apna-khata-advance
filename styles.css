@@ -574,3 +574,251 @@ body {
   border-radius: var(--radius-md);
   color: var(--text-muted);
 }
+
+/* ==============================================================================
+   PEOPLE LEDGER & PERSON WISE BALANCE (MAQSOOD STORE INVENTORY & OTHER KHATA STYLE)
+   ============================================================================== */
+.section-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #10b981;
+  margin-bottom: 4px;
+}
+
+body.light-theme .section-badge {
+  color: #047857;
+}
+
+.people-ledger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.people-ledger-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.5px;
+}
+
+.people-ledger-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.badge-pill-orange {
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+
+body:not(.light-theme) .badge-pill-orange {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+/* 3 GRAND TOTAL CARDS */
+.ledger-grand-total-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .ledger-grand-total-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-ledger-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+body.light-theme .card-ledger-stat {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.card-ledger-stat::after {
+  content: "";
+  position: absolute;
+  right: -25px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card-ledger-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.card-ledger-val {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 6px 0;
+  letter-spacing: -0.5px;
+}
+
+.card-ledger-val.val-green {
+  color: #10b981;
+}
+
+body.light-theme .card-ledger-val.val-green {
+  color: #047857;
+}
+
+.card-ledger-val.val-blue {
+  color: #38bdf8;
+}
+
+body.light-theme .card-ledger-val.val-blue {
+  color: #0369a1;
+}
+
+.card-ledger-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.card-ledger-stat.net-card {
+  background: #0e6245 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 8px 24px rgba(14, 98, 69, 0.35);
+}
+
+.card-ledger-stat.net-card .card-ledger-label,
+.card-ledger-stat.net-card .card-ledger-sub {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.card-ledger-stat.net-card .card-ledger-val {
+  color: #ffffff !important;
+}
+
+/* PERSON WISE CARDS GRID */
+.person-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.person-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+body.light-theme .person-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.person-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.12);
+}
+
+.person-card-name {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.person-card-status {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.person-card-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.person-card-divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 12px;
+}
+
+body.light-theme .person-card-divider {
+  background: #e2e8f0;
+}
+
+.person-card-amount {
+  font-size: 24px;
+  font-weight: 800;
+  color: #10b981;
+}
+
+body.light-theme .person-card-amount {
+  color: #047857;
+}
+
+.person-card-amount.payable-amt {
+  color: #ef4444;
+}
+
+body.light-theme .person-card-amount.payable-amt {
+  color: #b91c1c;
+}
+
+.entry-audit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-glow);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-top: 4px;
+}
+
+.role-tag-pill {
+  font-size: 10px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 8px;
+  color: var(--text-main);
+}
