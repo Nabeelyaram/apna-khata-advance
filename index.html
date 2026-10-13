@@ -403,6 +403,22 @@
           <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">⚙️ Profile & Account Settings</h3>
           <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Aap ka zaati account aur security options</p>
 
+          <!-- PROFILE AVATAR MANAGEMENT -->
+          <div style="display: flex; align-items: center; gap: 18px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+            <div id="settingsAvatarPreview" class="user-avatar" style="width: 76px; height: 76px; font-size: 30px; cursor: pointer; flex-shrink: 0; overflow: hidden; border: 3px solid var(--primary-glow); box-shadow: 0 4px 15px rgba(0,0,0,0.15);" title="Profile tasveer badlein">
+              👤
+            </div>
+            <div>
+              <h4 style="font-size: 16px; font-weight: 800; margin-bottom: 4px;">Profile Tasveer (Avatar)</h4>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Apni tasveer lagayein taake family tree mein aap ka chehra nazar aaye.</p>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn-primary" style="width: auto; padding: 7px 16px; font-size: 12px;" id="btnChooseAvatar">📷 Tasveer Lagayein</button>
+                <button type="button" id="btnRemoveAvatar" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer;">Hata Dein</button>
+                <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+              </div>
+            </div>
+          </div>
+
           <div style="background: var(--bg-card-subtle); padding: 16px; border-radius: var(--radius-md); margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
               <span style="color: var(--text-muted);">Aap Ka Naam:</span>
@@ -420,6 +436,29 @@
               <span style="color: var(--text-muted);">Family Name:</span>
               <strong id="settingsFamilyName">---</strong>
             </div>
+          </div>
+
+          <!-- PASSWORD CHANGE SECTION -->
+          <div style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 24px;">
+            <h4 style="font-size: 15px; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">🔐 Password Tabdeel Karein</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Apna purana password likh kar naya password set karein.
+            </p>
+            <form id="changePasswordForm">
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="oldPasswordInput">Purana Password</label>
+                <input type="password" id="oldPasswordInput" class="form-input" placeholder="Mojooda password likhein" required>
+              </div>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="newPasswordInput">Naya Password</label>
+                <input type="password" id="newPasswordInput" class="form-input" placeholder="Kam az kam 4 digits / huroof" minlength="4" required>
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="confirmNewPasswordInput">Naya Password Dobara Likhein</label>
+                <input type="password" id="confirmNewPasswordInput" class="form-input" placeholder="Naya password confirm karein" minlength="4" required>
+              </div>
+              <button type="submit" class="btn-primary" style="width: auto; padding: 10px 22px;" id="btnSubmitChangePassword">Password Update Karein</button>
+            </form>
           </div>
 
           <!-- OFFLINE MOBILE BACKUP SECTION -->
@@ -456,6 +495,7 @@
         <button type="button" class="btn-close-modal" data-close="khataModal">✕</button>
       </div>
       <form id="khataForm">
+        <input type="hidden" id="khataEntryId" value="">
         <input type="hidden" id="khataIsPrivate" value="true">
         <div class="form-group">
           <label for="khataPerson">Shakhs Ka Naam</label>
@@ -494,7 +534,7 @@
           </p>
         </div>
 
-        <button type="submit" class="btn-primary">Save Karein</button>
+        <button type="submit" class="btn-primary" id="khataSubmitBtn">Save Karein</button>
       </form>
     </div>
   </div>

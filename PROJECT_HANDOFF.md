@@ -139,5 +139,8 @@ Vercel automatically builds and updates the live site at `https://apna-khata-adv
 - [x] **Clean Profile Switching:** Logging out wipes state and forms so new users never see another profile.
 - [x] **Zero Data Loss Guarantee:** Non-destructive SQL scripts preserve tables and rows permanently, and re-registration automatically re-links prior records.
 - [x] **Offline Mobile Backups:** Excel (.xls), PDF, and JSON downloads verified.
+- [x] **Khata Edit & Delete:** Entry cards include both `✏️ Edit` (pre-fills form, updates via PATCH) and `🗑️ Delete` (confirms and removes via DELETE).
+- [x] **Profile Picture / Avatar:** Any user can upload and crop their profile photo; renders in Header, Settings, and Family Tree cards.
+- [x] **Password Change:** Secure password update form in Settings with bcrypt verification via `app_change_password` RPC.
 - [x] **Complete Anonymity:** Zero developer/personal names hardcoded in UI.
 - [x] **PWA Install Ready:** Luxury financial growth icon configured for mobile home screen installation.

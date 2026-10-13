@@ -311,6 +311,142 @@
     }
   }
 
+  // ----------------------------------------------------------------------------
+  // PROFILE PICTURE & AVATAR
+  // ----------------------------------------------------------------------------
+  function handleAvatarFileSelected(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Baraye meherbani image file select karein.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const img = new Image();
+      img.onload = function() {
+        // Resize to 128x128 for crisp display & tiny storage size (under 10KB)
+        const canvas = document.createElement("canvas");
+        const size = 128;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+
+        // Crop centered square
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+
+        saveUserAvatar(dataUrl);
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function saveUserAvatar(dataUrl) {
+    if (!state.user) return;
+    state.user.avatar_url = dataUrl;
+    localStorage.setItem("user_avatar_" + state.user.id, dataUrl);
+    localStorage.setItem(USER_KEY, JSON.stringify(state.user));
+
+    updateUserAvatarUI();
+    renderFamilyMembers();
+    toast("Profile tasveer lag gayi!");
+
+    // Also attempt saving to database (if avatar_url column exists)
+    try {
+      await api(`app_users?id=eq.${state.user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ avatar_url: dataUrl })
+      });
+    } catch (_) {
+      // Column may not exist in DB yet, local storage ensures it works immediately
+    }
+  }
+
+  async function removeUserAvatar() {
+    if (!state.user) return;
+    state.user.avatar_url = null;
+    localStorage.removeItem("user_avatar_" + state.user.id);
+    localStorage.setItem(USER_KEY, JSON.stringify(state.user));
+
+    updateUserAvatarUI();
+    renderFamilyMembers();
+    toast("Profile tasveer hata di gayi");
+
+    try {
+      await api(`app_users?id=eq.${state.user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ avatar_url: null })
+      });
+    } catch (_) {}
+  }
+
+  // ----------------------------------------------------------------------------
+  // CHANGE PASSWORD
+  // ----------------------------------------------------------------------------
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    const oldPass = $("oldPasswordInput").value;
+    const newPass = $("newPasswordInput").value;
+    const confirmPass = $("confirmNewPasswordInput").value;
+
+    if (!oldPass) {
+      alert("Baraye meherbani mojooda purana password likhein.");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      alert("Naya password aur Confirm password match nahi kar rahe!");
+      return;
+    }
+    if (newPass.length < 4) {
+      alert("Naya password kam az kam 4 huroof ya digits ka hona chahiye.");
+      return;
+    }
+
+    const btn = $("btnSubmitChangePassword");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Checking...";
+    }
+
+    try {
+      const res = await api("rpc/app_change_password", {
+        method: "POST",
+        body: JSON.stringify({
+          input_old_password: oldPass,
+          input_new_password: newPass,
+          input_user_id: state.user?.id,
+          input_token: state.token
+        })
+      });
+
+      if (res && res.success) {
+        toast("Password kamyabi se tabdeel ho gaya!");
+        $("changePasswordForm").reset();
+      } else {
+        alert(res?.error || "Password tabdeel nahi ho saka.");
+      }
+    } catch (err) {
+      if (err.message && (err.message.includes("404") || err.message.includes("not find"))) {
+        alert("Password change karne ke liye Supabase SQL Editor mein latest supabase_setup.sql run karein.");
+      } else {
+        alert("Password change fail: " + err.message);
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Password Update Karein";
+      }
+    }
+  }
+
   async function logout() {
     try {
       if (state.token) {
@@ -345,12 +481,39 @@
     $("mainApp").style.display = "none";
   }
 
+  function updateUserAvatarUI() {
+    if (!state.user) return;
+    const localAvatar = localStorage.getItem("user_avatar_" + state.user.id);
+    const avatar = state.user.avatar_url || localAvatar;
+    if (avatar) {
+      state.user.avatar_url = avatar;
+    }
+
+    const headerAvatar = $("userAvatarChar");
+    if (headerAvatar) {
+      if (avatar) {
+        headerAvatar.innerHTML = `<img src="${avatar}" alt="Avatar">`;
+      } else {
+        headerAvatar.textContent = state.user.name.charAt(0).toUpperCase();
+      }
+    }
+
+    const settingsAvatar = $("settingsAvatarPreview");
+    if (settingsAvatar) {
+      if (avatar) {
+        settingsAvatar.innerHTML = `<img src="${avatar}" alt="Avatar">`;
+      } else {
+        settingsAvatar.textContent = state.user.name.charAt(0).toUpperCase();
+      }
+    }
+  }
+
   function showApp() {
     $("authScreen").style.display = "none";
     $("mainApp").style.display = "flex";
 
     if (state.user) {
-      $("userAvatarChar").textContent = state.user.name.charAt(0).toUpperCase();
+      updateUserAvatarUI();
       $("headerFamilyName").textContent = "👨‍👩‍👧‍👦 " + (state.user.family_name || "Family");
       $("headerInviteCode").textContent = state.user.invite_code || "------";
 
@@ -394,14 +557,15 @@
       }
 
       // 1. Direct query from app_users table (fast, reliable, active members)
-      const users = await api(`app_users?family_id=eq.${famId}&is_active=eq.true&select=id,name,phone,relation_role,created_at&order=created_at.asc`);
+      const users = await api(`app_users?family_id=eq.${famId}&is_active=eq.true&order=created_at.asc`);
       if (Array.isArray(users) && users.length) {
         state.familyMembers = users.map((u) => ({
           id: u.id,
           name: u.name,
           phone: u.phone,
           role: u.relation_role || "Member",
-          joined_at: u.created_at
+          joined_at: u.created_at,
+          avatar_url: u.avatar_url || null
         }));
       } else {
         // Fallback to RPC if direct table query was empty
@@ -689,10 +853,15 @@
     list.innerHTML = state.familyMembers.map((m) => {
       const isMe = state.user && m.id === state.user.id;
       const joinedStr = m.joined_at ? formatDate(m.joined_at) : "";
+      const avatarSrc = m.avatar_url || (isMe ? (state.user?.avatar_url || localStorage.getItem("user_avatar_" + state.user?.id)) : null);
+      const avatarHtml = avatarSrc
+        ? `<img src="${avatarSrc}" alt="${escapeHtml(m.name)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+        : escapeHtml(m.name.charAt(0).toUpperCase());
+
       return `
         <div class="stat-card" style="padding:18px; border-left: 4px solid var(--primary); display:flex; align-items:center; gap:14px;">
-          <div class="user-avatar" style="width:52px; height:52px; font-size:22px; flex-shrink: 0;">
-            ${escapeHtml(m.name.charAt(0).toUpperCase())}
+          <div class="user-avatar" style="width:52px; height:52px; font-size:22px; flex-shrink: 0; overflow:hidden;">
+            ${avatarHtml}
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
@@ -784,6 +953,9 @@
       }
     }
 
+    document.querySelectorAll("[data-edit-khata]").forEach((btn) => {
+      btn.addEventListener("click", () => openEditKhata(btn.dataset.editKhata));
+    });
     document.querySelectorAll("[data-del-khata]").forEach((btn) => {
       btn.addEventListener("click", () => deleteKhata(btn.dataset.delKhata));
     });
@@ -852,7 +1024,10 @@
       settlement_paid: { text: "Wapas diye (Adaigi)", cls: "amount-neutral" }
     };
     const info = typeLabels[row.entry_type] || { text: "Khata", cls: "amount-neutral" };
-    const canDelete = state.user && row.user_id === state.user.id;
+    const canModify = state.user && (
+      (isPrivate && row.user_id === state.user.id) ||
+      (!isPrivate && (row.user_id === state.user.id || row.family_id === state.user.family_id))
+    );
 
     return `
       <div class="item-card">
@@ -869,15 +1044,40 @@
             </div>` : ""}
           ${row.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">"${escapeHtml(row.note)}"</div>` : ""}
         </div>
-        <div style="display:flex; align-items:center; gap:14px;">
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
           <span class="item-amount ${info.cls}">${money(row.amount)}</span>
-          ${canDelete ? `<button type="button" style="background:transparent; border:none; font-size:16px; cursor:pointer;" data-del-khata="${row.id}" title="Delete">🗑️</button>` : ""}
+          ${canModify ? `
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button type="button" class="btn-entry-action" data-edit-khata="${row.id}" title="Edit Karein">✏️ Edit</button>
+              <button type="button" class="btn-entry-action btn-del-khata" data-del-khata="${row.id}" title="Delete Karein">🗑️ Delete</button>
+            </div>` : ""}
         </div>
       </div>`;
   }
 
+  function openEditKhata(id) {
+    const row = state.khataEntries.find((r) => r.id === id);
+    if (!row) return;
+
+    $("khataEntryId").value = row.id;
+    $("khataIsPrivate").value = row.is_private ? "true" : "false";
+    $("khataModalTitle").textContent = "✏️ Khata Entry Edit Karein";
+    $("khataSubmitBtn").textContent = "Update Karein";
+    $("khataPerson").value = row.person_name || "";
+    $("khataPhone").value = row.person_phone || "";
+    $("khataType").value = row.entry_type;
+    $("khataAmount").value = row.amount;
+    $("khataNote").value = row.note || "";
+
+    const impactBox = $("budgetImpactBox");
+    if (impactBox) impactBox.style.display = "none";
+
+    openModal("khataModal");
+  }
+
   async function handleAddKhata(e) {
     e.preventDefault();
+    const entryId = $("khataEntryId").value;
     const isPrivate = $("khataIsPrivate").value === "true";
     const person = $("khataPerson").value.trim();
     const phone = $("khataPhone").value.trim();
@@ -887,45 +1087,66 @@
     const syncBudget = $("syncWithBudget")?.checked;
 
     try {
-      await api("khata_entries", {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: state.user.id,
-          user_name: state.user.name,
-          user_role: state.user.role || "Member",
-          family_id: state.user.family_id,
-          is_private: isPrivate,
-          person_name: person,
-          person_phone: phone || null,
-          entry_type: type,
-          amount,
-          note: note || null
-        })
-      });
-
-      // AUTO ADJUST WITH HOUSEHOLD INCOME / EXPENSE IF USER CONFIRMED
-      if (!isPrivate && syncBudget) {
-        const isIncome = type === "payable" || type === "settlement_received"; // Pese mile hain
-        await api("household_finance", {
+      if (entryId) {
+        // UPDATE EXISTING ENTRY
+        await api(`khata_entries?id=eq.${entryId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            person_name: person,
+            person_phone: phone || null,
+            entry_type: type,
+            amount: amount,
+            note: note || null,
+            is_private: isPrivate
+          })
+        });
+        toast("Khata entry update ho gayi!");
+      } else {
+        // INSERT NEW ENTRY
+        await api("khata_entries", {
           method: "POST",
           body: JSON.stringify({
             user_id: state.user.id,
             user_name: state.user.name,
             user_role: state.user.role || "Member",
             family_id: state.user.family_id,
-            finance_type: isIncome ? "income" : "expense",
-            category: `Khata Adjustment (${person})`,
-            amount: amount,
-            note: `Auto-sync: ${type === "payable" ? "Pese liye" : "Pese diye"}`
+            is_private: isPrivate,
+            person_name: person,
+            person_phone: phone || null,
+            entry_type: type,
+            amount,
+            note: note || null
           })
         });
-        await loadFinances();
+
+        // AUTO ADJUST WITH HOUSEHOLD INCOME / EXPENSE IF USER CONFIRMED
+        if (!isPrivate && syncBudget) {
+          const isIncome = type === "payable" || type === "settlement_received"; // Pese mile hain
+          await api("household_finance", {
+            method: "POST",
+            body: JSON.stringify({
+              user_id: state.user.id,
+              user_name: state.user.name,
+              user_role: state.user.role || "Member",
+              family_id: state.user.family_id,
+              finance_type: isIncome ? "income" : "expense",
+              category: `Khata Adjustment (${person})`,
+              amount: amount,
+              note: `Auto-sync: ${type === "payable" ? "Pese liye" : "Pese diye"}`
+            })
+          });
+          await loadFinances();
+        }
+
+        toast(isPrivate ? "Zaati khata save ho gaya!" : "Family khata save ho gaya!");
       }
 
       closeModal("khataModal");
       $("khataForm").reset();
+      $("khataEntryId").value = "";
+      $("khataModalTitle").textContent = "Nayi Khata Entry";
+      $("khataSubmitBtn").textContent = "Save Karein";
       $("budgetImpactBox").style.display = "none";
-      toast(isPrivate ? "Zaati khata save ho gaya!" : "Family khata save ho gaya!");
       await loadKhata();
       renderAllViews();
     } catch (err) {
@@ -1231,13 +1452,21 @@
 
     // Khata Modals
     $("openPrivateKhataBtn")?.addEventListener("click", () => {
+      $("khataEntryId").value = "";
+      $("khataForm").reset();
       $("khataIsPrivate").value = "true";
       $("khataModalTitle").textContent = "🔒 Nayi Zaati Private Entry";
+      $("khataSubmitBtn").textContent = "Save Karein";
+      $("budgetImpactBox").style.display = "none";
       openModal("khataModal");
     });
     $("openSharedKhataBtn")?.addEventListener("click", () => {
+      $("khataEntryId").value = "";
+      $("khataForm").reset();
       $("khataIsPrivate").value = "false";
       $("khataModalTitle").textContent = "👨‍👩‍👧 Nayi Family Shared Entry";
+      $("khataSubmitBtn").textContent = "Save Karein";
+      $("budgetImpactBox").style.display = "none";
       openModal("khataModal");
     });
 
@@ -1257,6 +1486,13 @@
     $("khataForm").addEventListener("submit", handleAddKhata);
     $("kametiForm").addEventListener("submit", handleAddCommittee);
     $("financeForm").addEventListener("submit", handleAddFinance);
+
+    // Profile Avatar & Password Change Listeners
+    $("avatarFileInput")?.addEventListener("change", handleAvatarFileSelected);
+    $("btnChooseAvatar")?.addEventListener("click", () => $("avatarFileInput")?.click());
+    $("settingsAvatarPreview")?.addEventListener("click", () => $("avatarFileInput")?.click());
+    $("btnRemoveAvatar")?.addEventListener("click", removeUserAvatar);
+    $("changePasswordForm")?.addEventListener("submit", handleChangePassword);
 
     // Offline Mobile Backup Downloads
     $("btnDownloadBackupPdf")?.addEventListener("click", downloadBackupPdf);

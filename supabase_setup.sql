@@ -44,6 +44,7 @@ create table if not exists public.app_users (
 alter table public.app_users add column if not exists relation_role text default 'Member';
 alter table public.app_users add column if not exists is_active boolean not null default true;
 alter table public.app_users add column if not exists deleted_at timestamptz;
+alter table public.app_users add column if not exists avatar_url text;
 
 -- Unique phone only on active users
 create unique index if not exists idx_unique_active_phone on public.app_users(phone) where is_active = true;
@@ -506,6 +507,56 @@ begin
 end;
 $$;
 
+-- RPC: Password Tabdeel Karein (Securely update bcrypt hash with verification)
+create or replace function public.app_change_password(
+  input_old_password text,
+  input_new_password text,
+  input_user_id uuid default null,
+  input_token text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid;
+  v_user record;
+begin
+  v_uid := input_user_id;
+  if v_uid is null and input_token is not null and input_token != '' then
+    select user_id into v_uid from public.app_sessions where token = input_token and expires_at > now();
+  end if;
+  if v_uid is null then
+    v_uid := public.current_app_user_id();
+  end if;
+
+  if v_uid is null then
+    return jsonb_build_object('success', false, 'error', 'Pehle login karein');
+  end if;
+
+  if length(coalesce(input_new_password, '')) < 4 then
+    return jsonb_build_object('success', false, 'error', 'Naya password kam az kam 4 huroof ya digits ka hona chahiye');
+  end if;
+
+  select id, password_hash into v_user from public.app_users where id = v_uid and is_active = true;
+  if v_user.id is null then
+    return jsonb_build_object('success', false, 'error', 'User account nahi mila');
+  end if;
+
+  if v_user.password_hash != crypt(input_old_password, v_user.password_hash) then
+    return jsonb_build_object('success', false, 'error', 'Purana password ghalat hai. Dobara check karein.');
+  end if;
+
+  update public.app_users
+  set password_hash = crypt(input_new_password, gen_salt('bf', 8)),
+      updated_at = now()
+  where id = v_uid;
+
+  return jsonb_build_object('success', true, 'message', 'Password kamyabi se tabdeel ho gaya hai');
+end;
+$$;
+
 -- ==============================================================================
 -- Row Level Security (RLS)
 -- ==============================================================================
@@ -587,3 +638,4 @@ grant execute on function public.app_logout() to anon, authenticated;
 grant execute on function public.get_family_members(uuid, text) to anon, authenticated;
 grant execute on function public.app_delete_profile() to anon, authenticated;
 grant execute on function public.app_join_family(text) to anon, authenticated;
+grant execute on function public.app_change_password(text, text, uuid, text) to anon, authenticated;
