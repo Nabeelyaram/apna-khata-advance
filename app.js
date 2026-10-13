@@ -1,5 +1,5 @@
 // ==============================================================================
-// Apna Khata Advance - Main Application Logic
+// Apna Khata Advance - Family Tree & Private Khata Logic
 // ==============================================================================
 
 (function () {
@@ -9,34 +9,28 @@
   const SESSION_KEY = "apna_khata_session_token";
   const USER_KEY = "apna_khata_user_info";
 
+  let deferredInstallPrompt = null;
+
   const state = {
     user: null,
     token: localStorage.getItem(SESSION_KEY) || "",
     currentTab: "dashboard",
+    familyMembers: [],
     khataEntries: [],
     committees: [],
     finances: []
   };
 
-  // Helper selectors
   const $ = (id) => document.getElementById(id);
 
-  // Formatting helpers
   const money = (val) => "Rs " + Number(val || 0).toLocaleString("en-PK");
   const formatDate = (isoStr) => {
     if (!isoStr) return "";
-    return new Intl.DateTimeFormat("en-PK", {
-      dateStyle: "medium",
-      timeZone: "Asia/Karachi"
-    }).format(new Date(isoStr));
+    return new Intl.DateTimeFormat("en-PK", { dateStyle: "medium", timeZone: "Asia/Karachi" }).format(new Date(isoStr));
   };
   const formatDateTime = (isoStr) => {
     if (!isoStr) return "";
-    return new Intl.DateTimeFormat("en-PK", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "Asia/Karachi"
-    }).format(new Date(isoStr));
+    return new Intl.DateTimeFormat("en-PK", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Karachi" }).format(new Date(isoStr));
   };
 
   function toast(message) {
@@ -48,7 +42,35 @@
     toast.timer = setTimeout(() => el.classList.remove("show"), 2800);
   }
 
-  // Supabase Fetch Wrapper
+  // ----------------------------------------------------------------------------
+  // INSTALL APP BANNER LOGIC (PWA Install Button)
+  // ----------------------------------------------------------------------------
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const banner = $("installBanner");
+    // Show banner if app is not already installed in standalone mode
+    if (banner && !window.matchMedia("(display-mode: standalone)").matches) {
+      banner.style.display = "flex";
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    const banner = $("installBanner");
+    if (banner) banner.style.display = "none";
+    toast("App install ho gayi hai!");
+  });
+
+  // Check standalone mode on load
+  if (window.matchMedia("(display-mode: standalone)").matches) {
+    const banner = $("installBanner");
+    if (banner) banner.style.display = "none";
+  }
+
+  // ----------------------------------------------------------------------------
+  // SUPABASE REST API
+  // ----------------------------------------------------------------------------
   async function api(path, options = {}) {
     const headers = {
       apikey: config.supabaseAnonKey,
@@ -80,7 +102,6 @@
   // ----------------------------------------------------------------------------
   // AUTHENTICATION
   // ----------------------------------------------------------------------------
-
   function checkExistingSession() {
     if (!state.token) {
       showAuth();
@@ -98,7 +119,6 @@
         }
       })
       .catch(() => {
-        // Fallback to local storage if offline
         const cached = localStorage.getItem(USER_KEY);
         if (cached) {
           try {
@@ -148,8 +168,11 @@
   async function handleRegister(e) {
     e.preventDefault();
     const name = $("regName").value.trim();
+    const role = $("regRole").value;
     const phone = $("regPhone").value.trim();
     const password = $("regPassword").value;
+    const familyName = $("regFamilyName").value.trim();
+    const joinCode = $("regJoinCode").value.trim();
     const btn = $("regSubmitBtn");
 
     try {
@@ -157,7 +180,14 @@
       btn.textContent = "Profile ban rahi hai...";
       const res = await api("rpc/app_register", {
         method: "POST",
-        body: JSON.stringify({ input_phone: phone, input_name: name, input_password: password })
+        body: JSON.stringify({
+          input_phone: phone,
+          input_name: name,
+          input_password: password,
+          input_family_name: familyName || null,
+          input_join_code: joinCode || null,
+          input_role: role
+        })
       });
 
       if (!res || !res.success) {
@@ -204,21 +234,21 @@
 
     if (state.user) {
       $("userDisplayName").textContent = state.user.name;
+      $("userRoleBadge").textContent = state.user.role || "Member";
       $("userAvatarChar").textContent = state.user.name.charAt(0).toUpperCase();
+      $("headerFamilyName").textContent = "👨‍👩‍👧‍👦 " + (state.user.family_name || "Family Group");
+      $("headerInviteCode").textContent = state.user.invite_code || "------";
+      $("shareInviteCode").textContent = state.user.invite_code || "------";
     }
-    $("todayDateStr").textContent = new Intl.DateTimeFormat("en-PK", {
-      dateStyle: "full",
-      timeZone: "Asia/Karachi"
-    }).format(new Date());
   }
 
   // ----------------------------------------------------------------------------
-  // DATA LOADING & RENDERING
+  // DATA LOADING
   // ----------------------------------------------------------------------------
-
   async function loadAllData() {
     try {
       await Promise.all([
+        loadFamilyMembers(),
         loadKhata(),
         loadCommittees(),
         loadFinances()
@@ -228,6 +258,11 @@
       console.error(err);
       toast("Data load karne me masla aaya");
     }
+  }
+
+  async function loadFamilyMembers() {
+    state.familyMembers = await api("rpc/get_family_members", { method: "POST", body: "{}" }) || [];
+    renderFamilyMembers();
   }
 
   async function loadKhata() {
@@ -246,77 +281,125 @@
   }
 
   // ----------------------------------------------------------------------------
-  // KHATA LOGIC
+  // FAMILY TREE RENDERING
   // ----------------------------------------------------------------------------
-
-  function khataSummary() {
-    let receivable = 0; // Maine lene hain
-    let payable = 0;    // Maine dene hain
-
-    state.khataEntries.forEach((r) => {
-      const amt = Number(r.amount || 0);
-      if (r.entry_type === "receivable") receivable += amt;
-      else if (r.entry_type === "payable") payable += amt;
-      else if (r.entry_type === "settlement_received") receivable -= amt;
-      else if (r.entry_type === "settlement_paid") payable -= amt;
-    });
-
-    return {
-      receivable: Math.max(0, receivable),
-      payable: Math.max(0, payable)
-    };
-  }
-
-  function renderKhata() {
-    const list = $("khataList");
+  function renderFamilyMembers() {
+    const list = $("familyMemberList");
     if (!list) return;
 
-    const sum = khataSummary();
-    $("khataTotalReceivable").textContent = money(sum.receivable);
-    $("khataTotalPayable").textContent = money(sum.payable);
+    $("dashFamilyCount").textContent = state.familyMembers.length || "1";
 
-    if (!state.khataEntries.length) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">🤝</div>
-          <p>Abhi koi Khata entry nahi hai. "+ Nayi Entry Karein" par click karein.</p>
-        </div>`;
+    if (!state.familyMembers.length) {
+      list.innerHTML = `<p class="empty-state">Koi family member shamil nahi hai.</p>`;
       return;
     }
 
-    const typeLabels = {
-      receivable: { text: "Maine diye (Lene hain)", cls: "amount-receivable", dot: "receivable" },
-      payable: { text: "Is ne diye (Dene hain)", cls: "amount-payable", dot: "payable" },
-      settlement_received: { text: "Is ne wapas diye (Khata Wapsi)", cls: "amount-neutral", dot: "settlement" },
-      settlement_paid: { text: "Maine wapas diye (Adaigi)", cls: "amount-neutral", dot: "settlement" }
-    };
-
-    list.innerHTML = state.khataEntries.map((row) => {
-      const info = typeLabels[row.entry_type] || { text: "Khata", cls: "amount-neutral", dot: "settlement" };
+    list.innerHTML = state.familyMembers.map((m) => {
+      const isMe = m.id === state.user.id;
       return `
-        <div class="item-card">
-          <div class="item-left">
-            <div class="type-indicator ${info.dot}"></div>
-            <div class="item-main">
-              <h4>${escapeHtml(row.person_name)} ${row.person_phone ? `<span style="font-size:12px;opacity:0.8;">(${row.person_phone})</span>` : ""}</h4>
-              <span>${info.text} · ${formatDateTime(row.entry_date)}</span>
-              ${row.note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">"${escapeHtml(row.note)}"</div>` : ""}
+        <div class="family-card">
+          <div class="family-member-avatar">${m.name.charAt(0).toUpperCase()}</div>
+          <div style="flex: 1;">
+            <h4 style="font-size: 15px; font-weight: 700;">
+              ${escapeHtml(m.name)} ${isMe ? `<span style="font-size: 11px; color: var(--primary);">(Aap)</span>` : ""}
+            </h4>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              Role: <strong style="color: #fff;">${escapeHtml(m.role || "Member")}</strong>
             </div>
-          </div>
-          <div class="item-right">
-            <span class="item-amount ${info.cls}">${money(row.amount)}</span>
-            <button type="button" class="btn-del" data-del-khata="${row.id}" title="Delete entry">🗑️</button>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+              Phone: ${m.phone}
+            </div>
           </div>
         </div>`;
     }).join("");
+  }
 
-    list.querySelectorAll("[data-del-khata]").forEach((btn) => {
+  // ----------------------------------------------------------------------------
+  // KHATA RENDERING (PRIVATE VS SHARED)
+  // ----------------------------------------------------------------------------
+  function renderKhata() {
+    const privList = $("privateKhataList");
+    const sharedList = $("sharedKhataList");
+
+    const privEntries = state.khataEntries.filter((r) => r.is_private);
+    const sharedEntries = state.khataEntries.filter((r) => !r.is_private);
+
+    // Private totals (User only)
+    let privRec = 0, privPay = 0;
+    privEntries.forEach((r) => {
+      const amt = Number(r.amount || 0);
+      if (r.entry_type === "receivable") privRec += amt;
+      else if (r.entry_type === "payable") privPay += amt;
+      else if (r.entry_type === "settlement_received") privRec -= amt;
+      else if (r.entry_type === "settlement_paid") privPay -= amt;
+    });
+
+    $("dashReceivable").textContent = money(Math.max(0, privRec));
+    $("dashPayable").textContent = money(Math.max(0, privPay));
+
+    // Render Private Khata
+    if (privList) {
+      if (!privEntries.length) {
+        privList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔒</div>
+            <p>Abhi koi Zaati Private entry nahi hai. "+ Zaati Entry Likhein" par click karein.</p>
+          </div>`;
+      } else {
+        privList.innerHTML = privEntries.map((row) => renderKhataCard(row, true)).join("");
+      }
+    }
+
+    // Render Shared Family Khata
+    if (sharedList) {
+      if (!sharedEntries.length) {
+        sharedList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">👨‍👩‍👧</div>
+            <p>Abhi koi Family Shared entry nahi hai. "+ Family Khata Entry" par click karein.</p>
+          </div>`;
+      } else {
+        sharedList.innerHTML = sharedEntries.map((row) => renderKhataCard(row, false)).join("");
+      }
+    }
+
+    document.querySelectorAll("[data-del-khata]").forEach((btn) => {
       btn.addEventListener("click", () => deleteKhata(btn.dataset.delKhata));
     });
   }
 
+  function renderKhataCard(row, isPrivate) {
+    const typeLabels = {
+      receivable: { text: "Maine diye (Lene hain)", cls: "amount-receivable" },
+      payable: { text: "Is ne diye (Dene hain)", cls: "amount-payable" },
+      settlement_received: { text: "Wapas mile (Khata Wapsi)", cls: "amount-neutral" },
+      settlement_paid: { text: "Wapas diye (Adaigi)", cls: "amount-neutral" }
+    };
+    const info = typeLabels[row.entry_type] || { text: "Khata", cls: "amount-neutral" };
+    const canDelete = row.user_id === state.user.id;
+
+    return `
+      <div class="item-card">
+        <div class="item-left">
+          <div class="item-main">
+            <h4>
+              ${escapeHtml(row.person_name)}
+              <span class="${isPrivate ? "tag-private" : "tag-family"}">${isPrivate ? "🔒 Zaati Private" : "👨‍👩‍👧 Family Shared"}</span>
+            </h4>
+            <span>${info.text} · ${formatDateTime(row.entry_date)}</span>
+            ${row.note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">"${escapeHtml(row.note)}"</div>` : ""}
+          </div>
+        </div>
+        <div class="item-right">
+          <span class="item-amount ${info.cls}">${money(row.amount)}</span>
+          ${canDelete ? `<button type="button" class="btn-del" data-del-khata="${row.id}" title="Delete">🗑️</button>` : ""}
+        </div>
+      </div>`;
+  }
+
   async function handleAddKhata(e) {
     e.preventDefault();
+    const isPrivate = $("khataIsPrivate").value === "true";
     const person = $("khataPerson").value.trim();
     const phone = $("khataPhone").value.trim();
     const type = $("khataType").value;
@@ -328,6 +411,8 @@
         method: "POST",
         body: JSON.stringify({
           user_id: state.user.id,
+          family_id: state.user.family_id,
+          is_private: isPrivate,
           person_name: person,
           person_phone: phone || null,
           entry_type: type,
@@ -337,7 +422,7 @@
       });
       closeModal("khataModal");
       $("khataForm").reset();
-      toast("Khata entry save ho gayi!");
+      toast(isPrivate ? "Zaati khata save ho gaya!" : "Family khata save ho gaya!");
       await loadKhata();
       renderDashboard();
     } catch (err) {
@@ -358,12 +443,15 @@
   }
 
   // ----------------------------------------------------------------------------
-  // KAMETI / COMMITTEE LOGIC
+  // KAMETI / COMMITTEE
   // ----------------------------------------------------------------------------
-
   function renderCommittees() {
     const list = $("kametiList");
     if (!list) return;
+
+    let totalPool = 0;
+    state.committees.forEach((c) => totalPool += Number(c.total_amount || 0));
+    $("dashKametiTotal").textContent = money(totalPool);
 
     if (!state.committees.length) {
       list.innerHTML = `
@@ -375,10 +463,10 @@
     }
 
     list.innerHTML = state.committees.map((com) => {
+      const canDelete = com.user_id === state.user.id;
       return `
         <div class="item-card">
           <div class="item-left">
-            <div class="type-indicator" style="background:#38bdf8;"></div>
             <div class="item-main">
               <h4>${escapeHtml(com.name)}</h4>
               <span>Shuru: ${formatDate(com.start_date)} · Duration: ${com.total_months} Mahinay</span>
@@ -390,9 +478,9 @@
           <div class="item-right">
             <div>
               <div style="font-size:11px;color:var(--text-muted);">KUL RAQAM</div>
-              <span class="item-amount" style="color:#38bdf8;">${money(com.total_amount)}</span>
+              <span class="item-amount" style="color:var(--primary);">${money(com.total_amount)}</span>
             </div>
-            <button type="button" class="btn-del" data-del-kameti="${com.id}" title="Delete kameti">🗑️</button>
+            ${canDelete ? `<button type="button" class="btn-del" data-del-kameti="${com.id}" title="Delete">🗑️</button>` : ""}
           </div>
         </div>`;
     }).join("");
@@ -417,6 +505,7 @@
         method: "POST",
         body: JSON.stringify({
           user_id: state.user.id,
+          family_id: state.user.family_id,
           name,
           total_amount: total,
           monthly_amount: monthly,
@@ -437,7 +526,7 @@
   }
 
   async function deleteCommittee(id) {
-    if (!confirm("Kya aap yeh committee record delete karna chahte hain?")) return;
+    if (!confirm("Kya aap yeh committee delete karna chahte hain?")) return;
     try {
       await api(`committees?id=eq.${id}`, { method: "DELETE" });
       toast("Kameti delete ho gayi");
@@ -449,53 +538,38 @@
   }
 
   // ----------------------------------------------------------------------------
-  // HOUSEHOLD FINANCE LOGIC (AAMDAN & KHARCH)
+  // HOUSEHOLD FINANCE
   // ----------------------------------------------------------------------------
-
-  function financeMonthlySummary() {
-    const currentMonthPrefix = new Date().toISOString().slice(0, 7);
-    let income = 0;
-    let expense = 0;
-
-    state.finances.forEach((row) => {
-      if (row.entry_date && row.entry_date.startsWith(currentMonthPrefix)) {
-        const amt = Number(row.amount || 0);
-        if (row.finance_type === "income") income += amt;
-        else expense += amt;
-      }
-    });
-
-    return {
-      income,
-      expense,
-      savings: income - expense
-    };
-  }
-
   function renderFinances() {
     const list = $("financeList");
     if (!list) return;
 
-    const summary = financeMonthlySummary();
-    $("financeTotalIncome").textContent = money(summary.income);
-    $("financeTotalExpense").textContent = money(summary.expense);
-    $("financeNetSavings").textContent = money(summary.savings);
+    let inc = 0, exp = 0;
+    state.finances.forEach((r) => {
+      const amt = Number(r.amount || 0);
+      if (r.finance_type === "income") inc += amt;
+      else exp += amt;
+    });
+
+    $("financeTotalIncome").textContent = money(inc);
+    $("financeTotalExpense").textContent = money(exp);
+    $("financeNetSavings").textContent = money(inc - exp);
 
     if (!state.finances.length) {
       list.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">🏠</div>
-          <p>Abhi aamdan ya kharch ka record nahi hai. "+ Aamdan ya Kharch Likhein" par click karein.</p>
+          <p>Abhi aamdan ya kharch ka record nahi hai. "+ Aamdan / Kharch Likhein" par click karein.</p>
         </div>`;
       return;
     }
 
     list.innerHTML = state.finances.map((row) => {
       const isInc = row.finance_type === "income";
+      const canDelete = row.user_id === state.user.id;
       return `
         <div class="item-card">
           <div class="item-left">
-            <div class="type-indicator" style="background:${isInc ? "var(--success)" : "var(--danger)"};"></div>
             <div class="item-main">
               <h4>${escapeHtml(row.category)}</h4>
               <span>${isInc ? "Aamdan (Income)" : "Kharch (Expense)"} · ${formatDateTime(row.entry_date)}</span>
@@ -506,7 +580,7 @@
             <span class="item-amount ${isInc ? "amount-receivable" : "amount-payable"}">
               ${isInc ? "+" : "-"}${money(row.amount)}
             </span>
-            <button type="button" class="btn-del" data-del-fin="${row.id}" title="Delete record">🗑️</button>
+            ${canDelete ? `<button type="button" class="btn-del" data-del-fin="${row.id}" title="Delete">🗑️</button>` : ""}
           </div>
         </div>`;
     }).join("");
@@ -528,6 +602,7 @@
         method: "POST",
         body: JSON.stringify({
           user_id: state.user.id,
+          family_id: state.user.family_id,
           finance_type: type,
           category: cat,
           amount,
@@ -557,30 +632,15 @@
   }
 
   // ----------------------------------------------------------------------------
-  // DASHBOARD VIEW
+  // DASHBOARD
   // ----------------------------------------------------------------------------
-
   function renderDashboard() {
-    const kSum = khataSummary();
-    const fSum = financeMonthlySummary();
-
-    let kametiTotal = 0;
-    state.committees.forEach((c) => {
-      kametiTotal += Number(c.total_amount || 0);
-    });
-
-    $("dashReceivable").textContent = money(kSum.receivable);
-    $("dashPayable").textContent = money(kSum.payable);
-    $("dashKametiTotal").textContent = money(kametiTotal);
-    $("dashMonthBalance").textContent = (fSum.savings >= 0 ? "+" : "") + money(fSum.savings);
-
     const recent = $("recentActivityList");
     if (!recent) return;
 
-    // Combine recent items
     const combined = [
       ...state.khataEntries.map((k) => ({
-        type: "Khata",
+        type: k.is_private ? "🔒 Zaati Khata" : "👨‍👩‍👧 Family Khata",
         title: `${k.person_name} (${k.entry_type})`,
         amount: k.amount,
         date: k.entry_date,
@@ -596,11 +656,7 @@
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
 
     if (!combined.length) {
-      recent.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">📊</div>
-          <p>Koi haliyah activity nahi hai.</p>
-        </div>`;
+      recent.innerHTML = `<div class="empty-state"><p>Koi haliyah activity nahi hai.</p></div>`;
       return;
     }
 
@@ -622,9 +678,8 @@
   }
 
   // ----------------------------------------------------------------------------
-  // UI & NAVIGATION HELPERS
+  // UI & NAVIGATION
   // ----------------------------------------------------------------------------
-
   function switchTab(tabId) {
     state.currentTab = tabId;
     document.querySelectorAll(".nav-tab-btn").forEach((btn) => {
@@ -657,11 +712,28 @@
   }
 
   // ----------------------------------------------------------------------------
-  // EVENT LISTENERS
+  // EVENT BINDINGS
   // ----------------------------------------------------------------------------
-
   function bindEvents() {
-    // Auth Tab toggle
+    // Install Banner Actions
+    $("btnInstallApp")?.addEventListener("click", async () => {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice.outcome === "accepted") {
+          $("installBanner").style.display = "none";
+        }
+        deferredInstallPrompt = null;
+      } else {
+        alert("Mobile ya laptop browser ke 3 dots menu se 'Install App' ya 'Add to Home Screen' select karein.");
+      }
+    });
+
+    $("btnCloseInstallBanner")?.addEventListener("click", () => {
+      $("installBanner").style.display = "none";
+    });
+
+    // Auth Tabs
     $("tabLoginBtn").addEventListener("click", () => {
       $("tabLoginBtn").classList.add("active");
       $("tabRegisterBtn").classList.remove("active");
@@ -686,7 +758,7 @@
       });
     });
 
-    // Form Submissions
+    // Forms
     $("loginForm").addEventListener("submit", handleLogin);
     $("registerForm").addEventListener("submit", handleRegister);
     $("logoutBtn").addEventListener("click", logout);
@@ -696,12 +768,22 @@
       btn.addEventListener("click", () => switchTab(btn.dataset.tab));
     });
 
-    // Modals Open
-    $("openKhataModalBtn")?.addEventListener("click", () => openModal("khataModal"));
+    // Khata Modals (Private vs Shared distinction)
+    $("openPrivateKhataBtn")?.addEventListener("click", () => {
+      $("khataIsPrivate").value = "true";
+      $("khataModalTitle").textContent = "🔒 Nayi Zaati Private Entry (Sirf Aap Dekh Sakte Hain)";
+      openModal("khataModal");
+    });
+
+    $("openSharedKhataBtn")?.addEventListener("click", () => {
+      $("khataIsPrivate").value = "false";
+      $("khataModalTitle").textContent = "👨‍👩‍👧 Nayi Family Shared Entry (Family Tree Me Sab Dekh Sakte Hain)";
+      openModal("khataModal");
+    });
+
     $("openKametiModalBtn")?.addEventListener("click", () => openModal("kametiModal"));
     $("openFinanceModalBtn")?.addEventListener("click", () => openModal("financeModal"));
 
-    // Modals Close
     document.querySelectorAll("[data-close]").forEach((btn) => {
       btn.addEventListener("click", () => closeModal(btn.dataset.close));
     });
@@ -711,18 +793,15 @@
       });
     });
 
-    // Data Form Submissions
     $("khataForm").addEventListener("submit", handleAddKhata);
     $("kametiForm").addEventListener("submit", handleAddCommittee);
     $("financeForm").addEventListener("submit", handleAddFinance);
 
-    // Set default date for Kameti
     if ($("kametiStart")) {
       $("kametiStart").value = new Date().toISOString().slice(0, 10);
     }
   }
 
-  // Initialization
   bindEvents();
   checkExistingSession();
 

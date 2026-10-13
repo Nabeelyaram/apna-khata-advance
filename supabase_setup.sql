@@ -1,22 +1,48 @@
 -- ==============================================================================
--- Apna Khata Advance - Database Schema
--- Multi-Dimensional Khata, Committee/Kameti Tracker & Household Finance
+-- Apna Khata Advance - Clean Migration & Schema Setup
 -- ==============================================================================
 
 create extension if not exists pgcrypto;
 
--- 1. Users Table (Phone Number + Password Hashing)
-create table if not exists public.app_users (
+-- Purane functions drop karein taake signature conflict na ho
+drop function if exists public.app_register(text, text, text);
+drop function if exists public.app_register(text, text, text, text, text, text);
+drop function if exists public.app_login(text, text);
+drop function if exists public.app_restore_session();
+drop function if exists public.app_logout();
+drop function if exists public.get_family_members();
+
+-- Purane tables ko safai se drop karein
+drop table if exists public.committee_records cascade;
+drop table if exists public.committees cascade;
+drop table if exists public.household_finance cascade;
+drop table if exists public.khata_entries cascade;
+drop table if exists public.app_sessions cascade;
+drop table if exists public.app_users cascade;
+drop table if exists public.families cascade;
+
+-- 1. Family Groups Table
+create table public.families (
+  id uuid primary key default gen_random_uuid(),
+  family_name text not null,
+  invite_code text unique not null,
+  created_at timestamptz not null default now()
+);
+
+-- 2. Users Table (with Family Link and Member Role)
+create table public.app_users (
   id uuid primary key default gen_random_uuid(),
   phone text unique not null,
   name text not null,
   password_hash text not null,
+  family_id uuid references public.families(id) on delete set null,
+  relation_role text default 'Member',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
--- 2. User Sessions Table
-create table if not exists public.app_sessions (
+-- 3. User Sessions Table
+create table public.app_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.app_users(id) on delete cascade,
   token text unique not null,
@@ -24,12 +50,12 @@ create table if not exists public.app_sessions (
   expires_at timestamptz not null default (now() + interval '90 days')
 );
 
--- 3. Khata Entries (Personal / Business Lena-Dena)
--- Type: receivable (Maine diye - lene hain), payable (Is ne diye - dene hain)
--- settlement_received (Is ne wapas diye), settlement_paid (Maine wapas diye)
-create table if not exists public.khata_entries (
+-- 4. Khata Entries (Personal Private vs Family Shared)
+create table public.khata_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.app_users(id) on delete cascade,
+  family_id uuid references public.families(id) on delete cascade,
+  is_private boolean not null default true,
   person_name text not null,
   person_phone text,
   entry_type text not null check (entry_type in ('receivable', 'payable', 'settlement_received', 'settlement_paid')),
@@ -39,23 +65,25 @@ create table if not exists public.khata_entries (
   created_at timestamptz not null default now()
 );
 
--- 4. Committee / Kameti Groups
-create table if not exists public.committees (
+-- 5. Committee / Kameti Groups
+create table public.committees (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.app_users(id) on delete cascade,
+  family_id uuid references public.families(id) on delete cascade,
+  is_private boolean not null default false,
   name text not null,
   total_amount numeric(12, 2) not null check (total_amount > 0),
   monthly_amount numeric(12, 2) not null check (monthly_amount > 0),
   total_months integer not null check (total_months > 0),
   start_date date not null,
-  my_turn_month integer, -- kis month me meri kameti nikli ya nikalni hai
+  my_turn_month integer,
   note text,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
--- 5. Committee Payments / Payouts
-create table if not exists public.committee_records (
+-- 6. Committee Payments / Payouts
+create table public.committee_records (
   id uuid primary key default gen_random_uuid(),
   committee_id uuid not null references public.committees(id) on delete cascade,
   user_id uuid not null references public.app_users(id) on delete cascade,
@@ -67,29 +95,29 @@ create table if not exists public.committee_records (
   created_at timestamptz not null default now()
 );
 
--- 6. Household Finance (Aamdan & Kharch)
-create table if not exists public.household_finance (
+-- 7. Household Finance (Aamdan & Kharch)
+create table public.household_finance (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.app_users(id) on delete cascade,
+  family_id uuid references public.families(id) on delete cascade,
+  is_private boolean not null default false,
   finance_type text not null check (finance_type in ('income', 'expense')),
-  category text not null, -- Maslan: Salary, Rashan, Bijli Bill, School Fee, Dawaai, etc.
+  category text not null,
   amount numeric(12, 2) not null check (amount > 0),
   entry_date timestamptz not null default now(),
   note text,
   created_at timestamptz not null default now()
 );
 
--- Indexes for performance
-create index if not exists idx_khata_user on public.khata_entries(user_id, entry_date desc);
-create index if not exists idx_committees_user on public.committees(user_id);
-create index if not exists idx_committee_records on public.committee_records(committee_id, user_id);
-create index if not exists idx_household_user on public.household_finance(user_id, entry_date desc);
+-- Indexes
+create index idx_khata_user_fam on public.khata_entries(user_id, family_id, is_private);
+create index idx_comm_user_fam on public.committees(user_id, family_id);
+create index idx_fin_user_fam on public.household_finance(user_id, family_id);
 
 -- ==============================================================================
 -- Security & Auth RPC Functions
 -- ==============================================================================
 
--- Helper: Get current user id from session header 'X-App-Session'
 create or replace function public.current_app_user_id()
 returns uuid
 language plpgsql
@@ -113,8 +141,32 @@ begin
 end;
 $$;
 
--- RPC: Register User (Phone, Name, Password)
-create or replace function public.app_register(input_phone text, input_name text, input_password text)
+create or replace function public.current_app_family_id()
+returns uuid
+language plpgsql
+stable
+security definer
+as $$
+declare
+  v_user_id uuid;
+  v_fam_id uuid;
+begin
+  v_user_id := public.current_app_user_id();
+  if v_user_id is null then return null; end if;
+
+  select family_id into v_fam_id from public.app_users where id = v_user_id;
+  return v_fam_id;
+end;
+$$;
+
+create or replace function public.app_register(
+  input_phone text,
+  input_name text,
+  input_password text,
+  input_family_name text default null,
+  input_join_code text default null,
+  input_role text default 'Member'
+)
 returns jsonb
 language plpgsql
 security definer
@@ -122,7 +174,9 @@ as $$
 declare
   clean_phone text;
   v_user_id uuid;
+  v_family_id uuid;
   v_token text;
+  v_code text;
 begin
   clean_phone := regexp_replace(input_phone, '[^0-9+]', '', 'g');
   if length(clean_phone) < 10 then
@@ -139,8 +193,20 @@ begin
     return jsonb_build_object('success', false, 'error', 'Yeh mobile number pehle se registered hai. Login karein.');
   end if;
 
-  insert into public.app_users (phone, name, password_hash)
-  values (clean_phone, trim(input_name), crypt(input_password, gen_salt('bf', 8)))
+  if input_join_code is not null and trim(input_join_code) != '' then
+    select id into v_family_id from public.families where upper(invite_code) = upper(trim(input_join_code));
+    if v_family_id is null then
+      return jsonb_build_object('success', false, 'error', 'Family Join Code ghalat hai. Dobara check karein.');
+    end if;
+  else
+    v_code := upper(substring(md5(random()::text), 1, 6));
+    insert into public.families (family_name, invite_code)
+    values (coalesce(nullif(trim(input_family_name), ''), trim(input_name) || ' Family'), v_code)
+    returning id into v_family_id;
+  end if;
+
+  insert into public.app_users (phone, name, password_hash, family_id, relation_role)
+  values (clean_phone, trim(input_name), crypt(input_password, gen_salt('bf', 8)), v_family_id, coalesce(nullif(trim(input_role), ''), 'Member'))
   returning id into v_user_id;
 
   v_token := encode(gen_random_bytes(32), 'hex');
@@ -149,12 +215,11 @@ begin
   return jsonb_build_object(
     'success', true,
     'session_token', v_token,
-    'user', jsonb_build_object('id', v_user_id, 'phone', clean_phone, 'name', trim(input_name))
+    'user', jsonb_build_object('id', v_user_id, 'phone', clean_phone, 'name', trim(input_name), 'family_id', v_family_id, 'role', input_role)
   );
 end;
 $$;
 
--- RPC: Login User
 create or replace function public.app_login(input_phone text, input_password text)
 returns jsonb
 language plpgsql
@@ -163,11 +228,12 @@ as $$
 declare
   clean_phone text;
   v_user record;
+  v_fam record;
   v_token text;
 begin
   clean_phone := regexp_replace(input_phone, '[^0-9+]', '', 'g');
 
-  select id, phone, name, password_hash into v_user
+  select id, phone, name, password_hash, family_id, relation_role into v_user
   from public.app_users
   where phone = clean_phone;
 
@@ -175,18 +241,27 @@ begin
     return jsonb_build_object('success', false, 'error', 'Mobile number ya password ghalat hai');
   end if;
 
+  select family_name, invite_code into v_fam from public.families where id = v_user.family_id;
+
   v_token := encode(gen_random_bytes(32), 'hex');
   insert into public.app_sessions (user_id, token) values (v_user.id, v_token);
 
   return jsonb_build_object(
     'success', true,
     'session_token', v_token,
-    'user', jsonb_build_object('id', v_user.id, 'phone', v_user.phone, 'name', v_user.name)
+    'user', jsonb_build_object(
+      'id', v_user.id,
+      'phone', v_user.phone,
+      'name', v_user.name,
+      'family_id', v_user.family_id,
+      'role', v_user.relation_role,
+      'family_name', v_fam.family_name,
+      'invite_code', v_fam.invite_code
+    )
   );
 end;
 $$;
 
--- RPC: Restore Session
 create or replace function public.app_restore_session()
 returns jsonb
 language plpgsql
@@ -195,25 +270,62 @@ as $$
 declare
   v_user_id uuid;
   v_user record;
+  v_fam record;
 begin
   v_user_id := public.current_app_user_id();
   if v_user_id is null then
     return jsonb_build_object('authenticated', false);
   end if;
 
-  select id, phone, name into v_user from public.app_users where id = v_user_id;
+  select id, phone, name, family_id, relation_role into v_user from public.app_users where id = v_user_id;
   if v_user.id is null then
     return jsonb_build_object('authenticated', false);
   end if;
 
+  select family_name, invite_code into v_fam from public.families where id = v_user.family_id;
+
   return jsonb_build_object(
     'authenticated', true,
-    'user', jsonb_build_object('id', v_user.id, 'phone', v_user.phone, 'name', v_user.name)
+    'user', jsonb_build_object(
+      'id', v_user.id,
+      'phone', v_user.phone,
+      'name', v_user.name,
+      'family_id', v_user.family_id,
+      'role', v_user.relation_role,
+      'family_name', v_fam.family_name,
+      'invite_code', v_fam.invite_code
+    )
   );
 end;
 $$;
 
--- RPC: Logout
+create or replace function public.get_family_members()
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_fam_id uuid;
+  members jsonb;
+begin
+  v_fam_id := public.current_app_family_id();
+  if v_fam_id is null then return '[]'::jsonb; end if;
+
+  select jsonb_agg(jsonb_build_object(
+    'id', id,
+    'name', name,
+    'phone', phone,
+    'role', relation_role,
+    'joined_at', created_at
+  )) into members
+  from public.app_users
+  where family_id = v_fam_id
+  order by created_at asc;
+
+  return coalesce(members, '[]'::jsonb);
+end;
+$$;
+
 create or replace function public.app_logout()
 returns jsonb
 language plpgsql
@@ -231,10 +343,10 @@ end;
 $$;
 
 -- ==============================================================================
--- Row Level Security (RLS) Policies
--- Users can strictly view and edit ONLY their own data
+-- Row Level Security (RLS)
 -- ==============================================================================
 
+alter table public.families enable row level security;
 alter table public.app_users enable row level security;
 alter table public.app_sessions enable row level security;
 alter table public.khata_entries enable row level security;
@@ -242,37 +354,44 @@ alter table public.committees enable row level security;
 alter table public.committee_records enable row level security;
 alter table public.household_finance enable row level security;
 
--- khata_entries policies
-create policy khata_select on public.khata_entries for select using (user_id = public.current_app_user_id());
+-- Policies
+create policy fam_select on public.families for select using (id = public.current_app_family_id());
+create policy users_select on public.app_users for select using (family_id = public.current_app_family_id());
+
+create policy khata_select on public.khata_entries for select using (
+  (user_id = public.current_app_user_id()) or
+  (is_private = false and family_id = public.current_app_family_id())
+);
 create policy khata_insert on public.khata_entries for insert with check (user_id = public.current_app_user_id());
 create policy khata_update on public.khata_entries for update using (user_id = public.current_app_user_id());
 create policy khata_delete on public.khata_entries for delete using (user_id = public.current_app_user_id());
 
--- committees policies
-create policy committees_select on public.committees for select using (user_id = public.current_app_user_id());
-create policy committees_insert on public.committees for insert with check (user_id = public.current_app_user_id());
-create policy committees_update on public.committees for update using (user_id = public.current_app_user_id());
-create policy committees_delete on public.committees for delete using (user_id = public.current_app_user_id());
+create policy comm_select on public.committees for select using (
+  (user_id = public.current_app_user_id()) or
+  (is_private = false and family_id = public.current_app_family_id())
+);
+create policy comm_insert on public.committees for insert with check (user_id = public.current_app_user_id());
+create policy comm_update on public.committees for update using (user_id = public.current_app_user_id());
+create policy comm_delete on public.committees for delete using (user_id = public.current_app_user_id());
 
--- committee_records policies
-create policy cr_select on public.committee_records for select using (user_id = public.current_app_user_id());
-create policy cr_insert on public.committee_records for insert with check (user_id = public.current_app_user_id());
-create policy cr_update on public.committee_records for update using (user_id = public.current_app_user_id());
-create policy cr_delete on public.committee_records for delete using (user_id = public.current_app_user_id());
-
--- household_finance policies
-create policy hf_select on public.household_finance for select using (user_id = public.current_app_user_id());
+create policy hf_select on public.household_finance for select using (
+  (user_id = public.current_app_user_id()) or
+  (is_private = false and family_id = public.current_app_family_id())
+);
 create policy hf_insert on public.household_finance for insert with check (user_id = public.current_app_user_id());
 create policy hf_update on public.household_finance for update using (user_id = public.current_app_user_id());
 create policy hf_delete on public.household_finance for delete using (user_id = public.current_app_user_id());
 
--- Grant access to anon & authenticated for RPC calls
+-- Permissions (Explicit function signatures specified)
 grant usage on schema public to anon, authenticated;
+grant all on public.families to anon, authenticated;
+grant all on public.app_users to anon, authenticated;
 grant all on public.khata_entries to anon, authenticated;
 grant all on public.committees to anon, authenticated;
 grant all on public.committee_records to anon, authenticated;
 grant all on public.household_finance to anon, authenticated;
-grant execute on function public.app_register to anon, authenticated;
-grant execute on function public.app_login to anon, authenticated;
-grant execute on function public.app_restore_session to anon, authenticated;
-grant execute on function public.app_logout to anon, authenticated;
+grant execute on function public.app_register(text, text, text, text, text, text) to anon, authenticated;
+grant execute on function public.app_login(text, text) to anon, authenticated;
+grant execute on function public.app_restore_session() to anon, authenticated;
+grant execute on function public.app_logout() to anon, authenticated;
+grant execute on function public.get_family_members() to anon, authenticated;
