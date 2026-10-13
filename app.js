@@ -174,7 +174,10 @@
       showAuth();
       return;
     }
-    api("rpc/app_restore_session", { method: "POST", body: "{}" })
+    api("rpc/app_restore_session", {
+      method: "POST",
+      body: JSON.stringify({ input_token: state.token })
+    })
       .then((res) => {
         if (res && res.authenticated && res.user) {
           state.user = res.user;
@@ -383,7 +386,24 @@
 
   async function loadFamilyMembers() {
     try {
-      state.familyMembers = await api("rpc/get_family_members", { method: "POST", body: "{}" }) || [];
+      const famId = state.user?.family_id;
+      let res = await api("rpc/get_family_members", {
+        method: "POST",
+        body: JSON.stringify({ input_family_id: famId, input_token: state.token })
+      });
+      if ((!res || !res.length) && famId) {
+        const users = await api(`app_users?family_id=eq.${famId}&is_active=eq.true&select=id,name,phone,relation_role,created_at`);
+        if (users && users.length) {
+          res = users.map((u) => ({
+            id: u.id,
+            name: u.name,
+            phone: u.phone,
+            role: u.relation_role || "Member",
+            joined_at: u.created_at
+          }));
+        }
+      }
+      state.familyMembers = Array.isArray(res) ? res : [];
     } catch (e) {
       console.warn("loadFamilyMembers err:", e);
       state.familyMembers = [];
@@ -521,7 +541,7 @@
   // DASHBOARD & ANIMATED CHART
   // ----------------------------------------------------------------------------
   function renderDashboard() {
-    const curFinances = filterByMonth(state.finances);
+    const curFinances = filterByMonth(state.finances).filter((f) => !state.user?.family_id || f.family_id === state.user.family_id);
     let inc = 0, exp = 0;
 
     curFinances.forEach((r) => {
@@ -687,8 +707,10 @@
     const sharedList = $("sharedKhataList");
 
     const filtered = filterByMonth(state.khataEntries);
-    const privEntries = filtered.filter((r) => r.is_private);
-    const sharedEntries = filtered.filter((r) => !r.is_private);
+    const myId = state.user?.id;
+    const myFamId = state.user?.family_id;
+    const privEntries = filtered.filter((r) => r.is_private && (!myId || r.user_id === myId));
+    const sharedEntries = filtered.filter((r) => !r.is_private && (!myFamId || r.family_id === myFamId));
 
     // Update 3 Grand Total Stat Cards (Image 1 Style)
     updateGrandTotalCards("priv", privEntries);
@@ -965,7 +987,8 @@
     const list = $("financeList");
     if (!list) return;
 
-    const filtered = filterByMonth(state.finances);
+    const myFamId = state.user?.family_id;
+    const filtered = filterByMonth(state.finances).filter((r) => !myFamId || r.family_id === myFamId);
     if (!filtered.length) {
       list.innerHTML = `<div class="empty-state"><p>Is period me koi aamdan ya kharch nahi hai.</p></div>`;
       return;

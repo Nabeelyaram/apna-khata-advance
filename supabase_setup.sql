@@ -328,17 +328,29 @@ begin
 end;
 $$;
 
-create or replace function public.app_restore_session()
+drop function if exists public.app_restore_session();
+drop function if exists public.app_restore_session(text);
+create or replace function public.app_restore_session(input_token text default null)
 returns jsonb
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
+  v_token text;
   v_user_id uuid;
   v_user record;
   v_fam record;
 begin
-  v_user_id := public.current_app_user_id();
+  v_token := input_token;
+  if v_token is null or v_token = '' then
+    v_user_id := public.current_app_user_id();
+  else
+    select user_id into v_user_id
+    from public.app_sessions
+    where token = v_token and expires_at > now();
+  end if;
+
   if v_user_id is null then
     return jsonb_build_object('authenticated', false);
   end if;
@@ -357,7 +369,7 @@ begin
       'phone', v_user.phone,
       'name', v_user.name,
       'family_id', v_user.family_id,
-      'role', v_user.relation_role,
+      'role', coalesce(v_user.relation_role, 'Member'),
       'family_name', v_fam.family_name,
       'invite_code', v_fam.invite_code
     )
@@ -365,22 +377,35 @@ begin
 end;
 $$;
 
-create or replace function public.get_family_members()
+drop function if exists public.get_family_members();
+drop function if exists public.get_family_members(uuid);
+drop function if exists public.get_family_members(uuid, text);
+create or replace function public.get_family_members(input_family_id uuid default null, input_token text default null)
 returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_user_id uuid;
   v_fam_id uuid;
   members jsonb;
 begin
-  v_user_id := public.current_app_user_id();
-  if v_user_id is null then return '[]'::jsonb; end if;
+  v_fam_id := input_family_id;
 
-  select family_id into v_fam_id from public.app_users where id = v_user_id and is_active = true;
-  if v_fam_id is null then return '[]'::jsonb; end if;
+  if v_fam_id is null and input_token is not null and input_token != '' then
+    select u.family_id into v_fam_id
+    from public.app_sessions s
+    join public.app_users u on u.id = s.user_id
+    where s.token = input_token and s.expires_at > now() and u.is_active = true;
+  end if;
+
+  if v_fam_id is null then
+    v_fam_id := public.current_app_family_id();
+  end if;
+
+  if v_fam_id is null then
+    return '[]'::jsonb;
+  end if;
 
   select jsonb_agg(jsonb_build_object(
     'id', id,
@@ -490,78 +515,52 @@ drop policy if exists fam_select on public.families;
 create policy fam_select on public.families for select using (true);
 
 drop policy if exists users_select on public.app_users;
-create policy users_select on public.app_users for select using (
-  id = public.current_app_user_id() or
-  (family_id is not null and family_id = public.current_app_family_id())
-);
+create policy users_select on public.app_users for select using (true);
 
 drop policy if exists khata_select on public.khata_entries;
 drop policy if exists khata_insert on public.khata_entries;
 drop policy if exists khata_update on public.khata_entries;
 drop policy if exists khata_delete on public.khata_entries;
-create policy khata_select on public.khata_entries for select using (
-  (user_id = public.current_app_user_id()) or
-  (is_private = false and family_id = public.current_app_family_id())
-);
-create policy khata_insert on public.khata_entries for insert with check (
-  (user_id = public.current_app_user_id()) or (family_id = public.current_app_family_id())
-);
-create policy khata_update on public.khata_entries for update using (
-  (user_id = public.current_app_user_id()) or (family_id = public.current_app_family_id())
-);
-create policy khata_delete on public.khata_entries for delete using (
-  (user_id = public.current_app_user_id()) or (family_id = public.current_app_family_id())
-);
+create policy khata_select on public.khata_entries for select using (true);
+create policy khata_insert on public.khata_entries for insert with check (true);
+create policy khata_update on public.khata_entries for update using (true);
+create policy khata_delete on public.khata_entries for delete using (true);
 
 drop policy if exists comm_select on public.committees;
 drop policy if exists comm_insert on public.committees;
 drop policy if exists comm_update on public.committees;
 drop policy if exists comm_delete on public.committees;
-create policy comm_select on public.committees for select using (
-  (user_id = public.current_app_user_id()) or
-  (is_private = false and family_id = public.current_app_family_id())
-);
-create policy comm_insert on public.committees for insert with check (family_id = public.current_app_family_id());
-create policy comm_update on public.committees for update using (family_id = public.current_app_family_id());
-create policy comm_delete on public.committees for delete using (family_id = public.current_app_family_id());
+create policy comm_select on public.committees for select using (true);
+create policy comm_insert on public.committees for insert with check (true);
+create policy comm_update on public.committees for update using (true);
+create policy comm_delete on public.committees for delete using (true);
 
 drop policy if exists cr_select on public.committee_records;
 drop policy if exists cr_insert on public.committee_records;
 drop policy if exists cr_update on public.committee_records;
 drop policy if exists cr_delete on public.committee_records;
-create policy cr_select on public.committee_records for select using (
-  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
-);
-create policy cr_insert on public.committee_records for insert with check (
-  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
-);
-create policy cr_update on public.committee_records for update using (
-  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
-);
-create policy cr_delete on public.committee_records for delete using (
-  committee_id in (select id from public.committees where (user_id = public.current_app_user_id() or (is_private = false and family_id = public.current_app_family_id())))
-);
+create policy cr_select on public.committee_records for select using (true);
+create policy cr_insert on public.committee_records for insert with check (true);
+create policy cr_update on public.committee_records for update using (true);
+create policy cr_delete on public.committee_records for delete using (true);
 
 drop policy if exists hf_select on public.household_finance;
 drop policy if exists hf_insert on public.household_finance;
 drop policy if exists hf_update on public.household_finance;
 drop policy if exists hf_delete on public.household_finance;
-create policy hf_select on public.household_finance for select using (
-  (user_id = public.current_app_user_id()) or
-  (is_private = false and family_id = public.current_app_family_id())
-);
-create policy hf_insert on public.household_finance for insert with check (family_id = public.current_app_family_id());
-create policy hf_update on public.household_finance for update using (family_id = public.current_app_family_id());
-create policy hf_delete on public.household_finance for delete using (family_id = public.current_app_family_id());
+create policy hf_select on public.household_finance for select using (true);
+create policy hf_insert on public.household_finance for insert with check (true);
+create policy hf_update on public.household_finance for update using (true);
+create policy hf_delete on public.household_finance for delete using (true);
 
 drop policy if exists roll_select on public.month_rollovers;
 drop policy if exists roll_insert on public.month_rollovers;
 drop policy if exists roll_update on public.month_rollovers;
 drop policy if exists roll_delete on public.month_rollovers;
-create policy roll_select on public.month_rollovers for select using (family_id = public.current_app_family_id());
-create policy roll_insert on public.month_rollovers for insert with check (family_id = public.current_app_family_id());
-create policy roll_update on public.month_rollovers for update using (family_id = public.current_app_family_id());
-create policy roll_delete on public.month_rollovers for delete using (family_id = public.current_app_family_id());
+create policy roll_select on public.month_rollovers for select using (true);
+create policy roll_insert on public.month_rollovers for insert with check (true);
+create policy roll_update on public.month_rollovers for update using (true);
+create policy roll_delete on public.month_rollovers for delete using (true);
 
 -- Permissions
 grant usage on schema public to anon, authenticated;
@@ -575,8 +574,8 @@ grant all on public.month_rollovers to anon, authenticated;
 
 grant execute on function public.app_register(text, text, text, text, text, text) to anon, authenticated;
 grant execute on function public.app_login(text, text) to anon, authenticated;
-grant execute on function public.app_restore_session() to anon, authenticated;
+grant execute on function public.app_restore_session(text) to anon, authenticated;
 grant execute on function public.app_logout() to anon, authenticated;
-grant execute on function public.get_family_members() to anon, authenticated;
+grant execute on function public.get_family_members(uuid, text) to anon, authenticated;
 grant execute on function public.app_delete_profile() to anon, authenticated;
 grant execute on function public.app_join_family(text) to anon, authenticated;
