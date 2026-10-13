@@ -265,6 +265,11 @@ begin
   values (clean_phone, trim(input_name), crypt(input_password, gen_salt('bf', 8)), v_family_id, coalesce(nullif(trim(input_role), ''), 'Member'), true)
   returning id into v_user_id;
 
+  -- Re-link any previous khata entries if user had deleted profile and is re-registering
+  update public.khata_entries
+  set user_id = v_user_id
+  where user_id in (select id from public.app_users where phone = clean_phone and id != v_user_id);
+
   select family_name, invite_code into v_fam from public.families where id = v_family_id;
 
   v_token := encode(gen_random_bytes(32), 'hex');
@@ -407,17 +412,20 @@ begin
     return '[]'::jsonb;
   end if;
 
-  select jsonb_agg(jsonb_build_object(
-    'id', id,
-    'name', name,
-    'phone', phone,
-    'role', coalesce(relation_role, 'Member'),
-    'is_active', is_active,
-    'joined_at', created_at
-  )) into members
-  from public.app_users
-  where family_id = v_fam_id and is_active = true
-  order by created_at asc;
+  select coalesce(jsonb_agg(m), '[]'::jsonb) into members
+  from (
+    select jsonb_build_object(
+      'id', id,
+      'name', name,
+      'phone', phone,
+      'role', coalesce(relation_role, 'Member'),
+      'is_active', is_active,
+      'joined_at', created_at
+    ) as m
+    from public.app_users
+    where family_id = v_fam_id and is_active = true
+    order by created_at asc
+  ) sub;
 
   return coalesce(members, '[]'::jsonb);
 end;

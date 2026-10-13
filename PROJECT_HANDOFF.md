@@ -132,11 +132,12 @@ Vercel automatically builds and updates the live site at `https://apna-khata-adv
 
 ## 7. Sign-Off & Verification Checklist
 - [x] **Zati Khata (Other Khata):** Matches Image 1 (3 Grand Total Cards) and Image 2 (Person Wise Balance Grid).
-- [x] **Family Tree:** Lists all active members with name, phone, role, and joined date.
+- [x] **Strict Private Khata Isolation:** Zaati Khata entries are strictly scoped to the logged-in user ID over the REST API and in dashboard calculations. No user can ever see another member's private entries.
+- [x] **Family Tree Directory:** Direct query on `app_users` table retrieves all active family members (`Muhammad Asad`, `Muhammad Nabeel`, `Aqsa`) with their role, phone number, and joined date.
 - [x] **Shared Entries Audit:** Every entry displays who made it (`👤 Entry darj ki: [Name] ([Role])`).
 - [x] **No Ctrl+F5 Requirement:** Network-First service worker ensures fresh load across sessions.
 - [x] **Clean Profile Switching:** Logging out wipes state and forms so new users never see another profile.
-- [x] **Zero Data Loss Guarantee:** Non-destructive SQL scripts preserve tables and rows permanently.
+- [x] **Zero Data Loss Guarantee:** Non-destructive SQL scripts preserve tables and rows permanently, and re-registration automatically re-links prior records.
 - [x] **Offline Mobile Backups:** Excel (.xls), PDF, and JSON downloads verified.
 - [x] **Complete Anonymity:** Zero developer/personal names hardcoded in UI.
 - [x] **PWA Install Ready:** Luxury financial growth icon configured for mobile home screen installation.

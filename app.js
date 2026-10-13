@@ -387,23 +387,34 @@
   async function loadFamilyMembers() {
     try {
       const famId = state.user?.family_id;
-      let res = await api("rpc/get_family_members", {
-        method: "POST",
-        body: JSON.stringify({ input_family_id: famId, input_token: state.token })
-      });
-      if ((!res || !res.length) && famId) {
-        const users = await api(`app_users?family_id=eq.${famId}&is_active=eq.true&select=id,name,phone,relation_role,created_at`);
-        if (users && users.length) {
-          res = users.map((u) => ({
-            id: u.id,
-            name: u.name,
-            phone: u.phone,
-            role: u.relation_role || "Member",
-            joined_at: u.created_at
-          }));
+      if (!famId) {
+        state.familyMembers = [];
+        renderFamilyMembers();
+        return;
+      }
+
+      // 1. Direct query from app_users table (fast, reliable, active members)
+      const users = await api(`app_users?family_id=eq.${famId}&is_active=eq.true&select=id,name,phone,relation_role,created_at&order=created_at.asc`);
+      if (Array.isArray(users) && users.length) {
+        state.familyMembers = users.map((u) => ({
+          id: u.id,
+          name: u.name,
+          phone: u.phone,
+          role: u.relation_role || "Member",
+          joined_at: u.created_at
+        }));
+      } else {
+        // Fallback to RPC if direct table query was empty
+        try {
+          const res = await api("rpc/get_family_members", {
+            method: "POST",
+            body: JSON.stringify({ input_family_id: famId, input_token: state.token })
+          });
+          state.familyMembers = Array.isArray(res) ? res : [];
+        } catch (_) {
+          state.familyMembers = [];
         }
       }
-      state.familyMembers = Array.isArray(res) ? res : [];
     } catch (e) {
       console.warn("loadFamilyMembers err:", e);
       state.familyMembers = [];
@@ -413,7 +424,28 @@
 
   async function loadKhata() {
     try {
-      state.khataEntries = await api("khata_entries?select=*&order=entry_date.desc") || [];
+      const myId = state.user?.id;
+      const famId = state.user?.family_id;
+      if (!myId) {
+        state.khataEntries = [];
+        return;
+      }
+
+      // 1. Fetch personal private entries ONLY for this logged-in user
+      const privPromise = api(`khata_entries?user_id=eq.${myId}&is_private=eq.true&order=entry_date.desc`);
+
+      // 2. Fetch shared family entries for this family
+      const sharedPromise = famId
+        ? api(`khata_entries?family_id=eq.${famId}&is_private=eq.false&order=entry_date.desc`)
+        : Promise.resolve([]);
+
+      const [privRes, sharedRes] = await Promise.all([privPromise, sharedPromise]);
+      const privList = Array.isArray(privRes) ? privRes : [];
+      const sharedList = Array.isArray(sharedRes) ? sharedRes : [];
+
+      state.khataEntries = [...privList, ...sharedList].sort(
+        (a, b) => new Date(b.entry_date) - new Date(a.entry_date)
+      );
     } catch (e) {
       console.warn("loadKhata err:", e);
       state.khataEntries = [];
@@ -422,7 +454,9 @@
 
   async function loadCommittees() {
     try {
-      state.committees = await api("committees?select=*&order=created_at.desc") || [];
+      const famId = state.user?.family_id;
+      const path = famId ? `committees?family_id=eq.${famId}&order=created_at.desc` : "committees?select=*&order=created_at.desc";
+      state.committees = (await api(path)) || [];
     } catch (e) {
       console.warn("loadCommittees err:", e);
       state.committees = [];
@@ -431,7 +465,9 @@
 
   async function loadFinances() {
     try {
-      state.finances = await api("household_finance?select=*&order=entry_date.desc") || [];
+      const famId = state.user?.family_id;
+      const path = famId ? `household_finance?family_id=eq.${famId}&order=entry_date.desc` : "household_finance?select=*&order=entry_date.desc";
+      state.finances = (await api(path)) || [];
     } catch (e) {
       console.warn("loadFinances err:", e);
       state.finances = [];
@@ -440,7 +476,9 @@
 
   async function loadRollovers() {
     try {
-      state.rollovers = await api("month_rollovers?select=*") || [];
+      const famId = state.user?.family_id;
+      const path = famId ? `month_rollovers?family_id=eq.${famId}&order=created_at.desc` : "month_rollovers?select=*";
+      state.rollovers = (await api(path)) || [];
     } catch (e) {
       console.warn("loadRollovers err:", e);
       state.rollovers = [];
@@ -573,19 +611,29 @@
       $("barSavings").style.width = savWidth + "%";
     }, 50);
 
-    // Private Khata Totals
+    // Private Khata Totals (Strictly for CURRENT LOGGED-IN USER)
+    const myId = state.user?.id;
+    const myFamId = state.user?.family_id;
+
     let privRec = 0;
-    filterByMonth(state.khataEntries).filter((r) => r.is_private).forEach((r) => {
-      if (r.entry_type === "receivable") privRec += Number(r.amount || 0);
-      else if (r.entry_type === "settlement_received") privRec -= Number(r.amount || 0);
-    });
+    if (myId) {
+      filterByMonth(state.khataEntries)
+        .filter((r) => r.is_private && r.user_id === myId)
+        .forEach((r) => {
+          if (r.entry_type === "receivable") privRec += Number(r.amount || 0);
+          else if (r.entry_type === "settlement_received") privRec -= Number(r.amount || 0);
+        });
+    }
     $("dashReceivable").textContent = money(Math.max(0, privRec));
 
-    // Recent Activity
+    // Recent Activity (Strict privacy: only current user's private OR family's shared)
     const recent = $("recentActivityList");
     if (!recent) return;
 
-    const filteredK = filterByMonth(state.khataEntries);
+    const filteredK = filterByMonth(state.khataEntries).filter((k) =>
+      (k.is_private && Boolean(myId) && k.user_id === myId) ||
+      (!k.is_private && Boolean(myFamId) && k.family_id === myFamId)
+    );
     const combined = [
       ...filteredK.map((k) => ({
         type: k.is_private ? "🔒 Zaati Khata" : "👨‍👩‍👧 Family Khata",
@@ -709,8 +757,8 @@
     const filtered = filterByMonth(state.khataEntries);
     const myId = state.user?.id;
     const myFamId = state.user?.family_id;
-    const privEntries = filtered.filter((r) => r.is_private && (!myId || r.user_id === myId));
-    const sharedEntries = filtered.filter((r) => !r.is_private && (!myFamId || r.family_id === myFamId));
+    const privEntries = filtered.filter((r) => r.is_private && Boolean(myId) && r.user_id === myId);
+    const sharedEntries = filtered.filter((r) => !r.is_private && Boolean(myFamId) && r.family_id === myFamId);
 
     // Update 3 Grand Total Stat Cards (Image 1 Style)
     updateGrandTotalCards("priv", privEntries);
