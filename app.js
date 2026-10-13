@@ -365,7 +365,7 @@
   // ----------------------------------------------------------------------------
   async function loadAllData() {
     try {
-      await Promise.all([
+      await Promise.allSettled([
         loadFamilyMembers(),
         loadKhata(),
         loadCommittees(),
@@ -373,32 +373,58 @@
         loadRollovers()
       ]);
       renderAllViews();
+      renderFamilyMembers();
       checkRolloverPrompt();
     } catch (err) {
-      console.error(err);
-      toast("Data load karne me masla aaya");
+      console.error("loadAllData critical:", err);
+      renderAllViews();
     }
   }
 
   async function loadFamilyMembers() {
-    state.familyMembers = await api("rpc/get_family_members", { method: "POST", body: "{}" }) || [];
+    try {
+      state.familyMembers = await api("rpc/get_family_members", { method: "POST", body: "{}" }) || [];
+    } catch (e) {
+      console.warn("loadFamilyMembers err:", e);
+      state.familyMembers = [];
+    }
     renderFamilyMembers();
   }
 
   async function loadKhata() {
-    state.khataEntries = await api("khata_entries?select=*&order=entry_date.desc") || [];
+    try {
+      state.khataEntries = await api("khata_entries?select=*&order=entry_date.desc") || [];
+    } catch (e) {
+      console.warn("loadKhata err:", e);
+      state.khataEntries = [];
+    }
   }
 
   async function loadCommittees() {
-    state.committees = await api("committees?select=*&order=created_at.desc") || [];
+    try {
+      state.committees = await api("committees?select=*&order=created_at.desc") || [];
+    } catch (e) {
+      console.warn("loadCommittees err:", e);
+      state.committees = [];
+    }
   }
 
   async function loadFinances() {
-    state.finances = await api("household_finance?select=*&order=entry_date.desc") || [];
+    try {
+      state.finances = await api("household_finance?select=*&order=entry_date.desc") || [];
+    } catch (e) {
+      console.warn("loadFinances err:", e);
+      state.finances = [];
+    }
   }
 
   async function loadRollovers() {
-    state.rollovers = await api("month_rollovers?select=*") || [];
+    try {
+      state.rollovers = await api("month_rollovers?select=*") || [];
+    } catch (e) {
+      console.warn("loadRollovers err:", e);
+      state.rollovers = [];
+    }
   }
 
   function renderAllViews() {

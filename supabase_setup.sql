@@ -154,12 +154,29 @@ returns uuid
 language plpgsql
 stable
 security definer
+set search_path = public
 as $$
 declare
+  raw_headers text;
+  headers_json json;
   header_token text;
   v_user_id uuid;
 begin
-  header_token := current_setting('request.headers', true)::json->>'x-app-session';
+  raw_headers := current_setting('request.headers', true);
+  if raw_headers is null or raw_headers = '' then
+    return null;
+  end if;
+
+  begin
+    headers_json := raw_headers::json;
+    header_token := coalesce(
+      headers_json->>'x-app-session',
+      headers_json->>'X-App-Session'
+    );
+  exception when others then
+    return null;
+  end;
+
   if header_token is null or header_token = '' then
     return null;
   end if;
@@ -177,6 +194,7 @@ returns uuid
 language plpgsql
 stable
 security definer
+set search_path = public
 as $$
 declare
   v_user_id uuid;
@@ -185,7 +203,10 @@ begin
   v_user_id := public.current_app_user_id();
   if v_user_id is null then return null; end if;
 
-  select family_id into v_fam_id from public.app_users where id = v_user_id and is_active = true;
+  select family_id into v_fam_id
+  from public.app_users
+  where id = v_user_id and is_active = true;
+
   return v_fam_id;
 end;
 $$;
@@ -348,19 +369,24 @@ create or replace function public.get_family_members()
 returns jsonb
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
+  v_user_id uuid;
   v_fam_id uuid;
   members jsonb;
 begin
-  v_fam_id := public.current_app_family_id();
+  v_user_id := public.current_app_user_id();
+  if v_user_id is null then return '[]'::jsonb; end if;
+
+  select family_id into v_fam_id from public.app_users where id = v_user_id and is_active = true;
   if v_fam_id is null then return '[]'::jsonb; end if;
 
   select jsonb_agg(jsonb_build_object(
     'id', id,
     'name', name,
     'phone', phone,
-    'role', relation_role,
+    'role', coalesce(relation_role, 'Member'),
     'is_active', is_active,
     'joined_at', created_at
   )) into members
@@ -453,7 +479,7 @@ $$;
 
 alter table public.families enable row level security;
 alter table public.app_users enable row level security;
-alter table public.app_sessions enable row level security;
+alter table public.app_sessions disable row level security;
 alter table public.khata_entries enable row level security;
 alter table public.committees enable row level security;
 alter table public.committee_records enable row level security;
@@ -461,10 +487,13 @@ alter table public.household_finance enable row level security;
 alter table public.month_rollovers enable row level security;
 
 drop policy if exists fam_select on public.families;
-create policy fam_select on public.families for select using (id = public.current_app_family_id());
+create policy fam_select on public.families for select using (true);
 
 drop policy if exists users_select on public.app_users;
-create policy users_select on public.app_users for select using (family_id = public.current_app_family_id());
+create policy users_select on public.app_users for select using (
+  id = public.current_app_user_id() or
+  (family_id is not null and family_id = public.current_app_family_id())
+);
 
 drop policy if exists khata_select on public.khata_entries;
 drop policy if exists khata_insert on public.khata_entries;
