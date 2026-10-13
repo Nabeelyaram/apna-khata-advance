@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Apna Khata Advance - Family & Private Khata</title>
-  <meta name="theme-color" content="#090d16">
+  <title>Apna Khata Advance - Luxury Financial Management</title>
+  <meta name="theme-color" content="#0b0f19">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="app-icon-192.png">
   <link rel="stylesheet" href="styles.css">
@@ -12,28 +12,28 @@
 </head>
 <body>
 
-  <!-- TOP PROMINENT INSTALL APP PROMPT -->
+  <!-- PROMINENT 1-CLICK INSTALL PROMPT -->
   <div id="installBanner" class="install-banner" style="display: none;">
-    <div class="install-banner-left">
-      <span class="install-banner-icon">📲</span>
-      <div class="install-banner-text">
-        <h4>Apna Khata App Install Karein</h4>
-        <p>Mobile ya laptop screen par aik click me kholne ke liye</p>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="app-icon-192.png" alt="Logo" style="width: 36px; height: 36px; border-radius: 8px;">
+      <div>
+        <h4 style="font-size: 14px; font-weight: 800;">Apna Khata App Install Karein</h4>
+        <p style="font-size: 11px; opacity: 0.9;">Screen par 1 click mein application open karne ke liye</p>
       </div>
     </div>
-    <div style="display: flex; align-items: center;">
-      <button type="button" class="install-btn" id="btnInstallApp">Install Karein</button>
-      <button type="button" class="install-close-btn" id="btnCloseInstallBanner">✕</button>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="install-btn" id="btnInstallApp">Install App</button>
+      <button type="button" style="background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer;" id="btnCloseInstallBanner">✕</button>
     </div>
   </div>
 
   <!-- AUTHENTICATION SCREEN -->
   <div id="authScreen" class="auth-container">
     <div class="auth-card">
-      <div class="brand-header">
-        <div class="brand-icon">📒</div>
-        <h1>Apna Khata Advance</h1>
-        <p>Family Shared System & Zaati Private Khata</p>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <img src="app-icon-192.png" alt="Apna Khata Logo" class="brand-icon-img">
+        <h1 style="font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Apna Khata Advance</h1>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Smart Family & Private Financial Management</p>
       </div>
 
       <div class="auth-tabs">
@@ -49,9 +49,9 @@
         </div>
         <div class="form-group">
           <label for="loginPassword">Password</label>
-          <div class="input-wrapper">
+          <div style="position: relative; display: flex; align-items: center;">
             <input type="password" id="loginPassword" class="form-input" placeholder="Password likhein" required autocomplete="current-password">
-            <button type="button" class="btn-toggle-pwd" data-target="loginPassword">Show</button>
+            <button type="button" style="position:absolute; right:12px; background:transparent; border:none; color:var(--text-muted); font-size:12px; cursor:pointer;" data-target="loginPassword" class="btn-toggle-pwd">Show</button>
           </div>
         </div>
         <button type="submit" class="btn-primary" id="loginSubmitBtn">Khata Kholein</button>
@@ -64,7 +64,7 @@
           <input type="text" id="regName" class="form-input" placeholder="Maslan: Muhammad Nabeel" required autocomplete="name">
         </div>
         <div class="form-group">
-          <label for="regRole">Rishta / Role</label>
+          <label for="regRole">Rishta / Family Role</label>
           <select id="regRole" class="form-select">
             <option value="Walid (Head)">Walid (Ghar Ka Sarbarah)</option>
             <option value="Walida">Walida</option>
@@ -73,30 +73,30 @@
             <option value="Behan">Behan</option>
             <option value="Beta">Beta</option>
             <option value="Beti">Beti</option>
-            <option value="Member">Khandaan Ka Fard (Member)</option>
+            <option value="Member">Family Member</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="regPhone">Mobile Number</label>
+          <label for="regPhone">Mobile Number (Login ID)</label>
           <input type="tel" id="regPhone" class="form-input" placeholder="03001234567" required autocomplete="tel">
         </div>
         <div class="form-group">
           <label for="regPassword">Password</label>
-          <div class="input-wrapper">
+          <div style="position: relative; display: flex; align-items: center;">
             <input type="password" id="regPassword" class="form-input" placeholder="Kam az kam 4 characters" required autocomplete="new-password">
-            <button type="button" class="btn-toggle-pwd" data-target="regPassword">Show</button>
+            <button type="button" style="position:absolute; right:12px; background:transparent; border:none; color:var(--text-muted); font-size:12px; cursor:pointer;" data-target="regPassword" class="btn-toggle-pwd">Show</button>
           </div>
         </div>
 
         <div style="border-top: 1px dashed var(--border); padding-top: 14px; margin-top: 14px;">
-          <label style="font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase;">Family Connection Choice</label>
-          <div class="form-group" style="margin-top: 8px;">
-            <label for="regFamilyName">Nayi Family Ka Naam (Agr aap naya shuru kar rahy)</label>
+          <label style="font-size: 11px; color: var(--primary); font-weight: 700;">FAMILY OPTION</label>
+          <div class="form-group" style="margin-top: 6px;">
+            <label for="regFamilyName">Nayi Family Ka Naam (Agr pehli dafa bana rahe)</label>
             <input type="text" id="regFamilyName" class="form-input" placeholder="Maslan: Maqsood Family">
           </div>
           <div class="form-group">
-            <label for="regJoinCode">YA Family Join Code (Agr kisi member ne pehle banayi)</label>
-            <input type="text" id="regJoinCode" class="form-input" placeholder="6-digit Invite Code (e.g. AB12CD)">
+            <label for="regJoinCode">YA Family Code (Agr kisi member se mila hai)</label>
+            <input type="text" id="regJoinCode" class="form-input" placeholder="6-digit Invite Code (e.g. 5D8F1A)">
           </div>
         </div>
 
@@ -108,30 +108,36 @@
   <!-- MAIN APP CONTAINER -->
   <div id="mainApp" style="display: none; min-height: 100vh; flex-direction: column;">
     
-    <!-- Header -->
+    <!-- Top Bar -->
     <header class="app-header">
       <div class="header-inner">
-        <div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <h2 style="font-size: 16px; font-weight: 800;">Apna Khata Advance</h2>
-            <span class="family-badge" id="headerFamilyName">👨‍👩‍👧‍👦 Family</span>
-          </div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-            Family Code: <strong style="color: var(--primary);" id="headerInviteCode">------</strong> (Family members ko add karne ke liye)
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <img src="app-icon-192.png" alt="Logo" style="width: 38px; height: 38px; border-radius: 10px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h2 style="font-size: 16px; font-weight: 800;">Apna Khata Advance</h2>
+              <span style="font-size: 11px; background: var(--success-bg); color: var(--success); padding: 2px 8px; border-radius: 12px; font-weight: 700;" id="headerFamilyName">👨‍👩‍👧‍👦 Family</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted);">
+              Family Code: <strong style="color: var(--primary); cursor: pointer;" id="headerInviteCode" title="Click to copy">------</strong>
+            </div>
           </div>
         </div>
+
         <div class="user-box">
-          <div class="user-avatar" id="userAvatarChar">N</div>
-          <div>
-            <div style="font-weight: 700; font-size: 13px;" id="userDisplayName">Nabeel</div>
-            <div style="font-size: 11px; color: var(--text-muted);" id="userRoleBadge">Member</div>
-          </div>
-          <button type="button" class="btn-logout" id="logoutBtn">Logout</button>
+          <!-- THEME SWITCHER -->
+          <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Theme change karein">
+            <span id="themeIcon">☀️</span> <span id="themeLabel" style="font-size: 11px;">Light</span>
+          </button>
+
+          <!-- USER AVATAR & MENU -->
+          <div class="user-avatar" id="userAvatarChar" style="cursor: pointer;" title="Profile Settings">N</div>
+          <button type="button" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; font-weight: 700;" id="logoutBtn">Logout</button>
         </div>
       </div>
     </header>
 
-    <!-- Navigation Bar -->
+    <!-- Navigation Tabs -->
     <nav class="app-nav">
       <div class="nav-inner">
         <button type="button" class="nav-tab-btn active" data-tab="dashboard">📊 Dashboard</button>
@@ -140,153 +146,215 @@
         <button type="button" class="nav-tab-btn" data-tab="sharedKhata">👨‍👩‍👧 Family Khata</button>
         <button type="button" class="nav-tab-btn" data-tab="kameti">👥 Committee / Kameti</button>
         <button type="button" class="nav-tab-btn" data-tab="finance">🏠 Ghar Ka Budget</button>
+        <button type="button" class="nav-tab-btn" data-tab="settings">⚙️ Settings</button>
       </div>
     </nav>
 
-    <!-- Main Content Container -->
+    <!-- Content Views -->
     <main class="main-content">
+
+      <!-- MONTH SELECTOR & ROLLOVER PROMPT -->
+      <div class="month-selector-bar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" class="month-nav-btn" id="prevMonthBtn">◀ Pichla Maah</button>
+          <span style="font-size: 15px; font-weight: 800; min-width: 130px; text-align: center;" id="currentMonthDisplay">October 2026</span>
+          <button type="button" class="month-nav-btn" id="nextMonthBtn">Agla Maah ▶</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="month-nav-btn" id="allTimeBtn" style="background: transparent;">All Time</button>
+        </div>
+      </div>
+
+      <!-- AUTO ROLLOVER REMINDER BANNER -->
+      <div id="rolloverBanner" class="rollover-box" style="display: none;">
+        <div>
+          <h4 style="font-size: 14px; font-weight: 800; color: var(--primary);">Naya Maheena Shuru Ho Gaya Hai! 🔄</h4>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            Pichle maheenay ki bachat (<strong id="rolloverPrevSavings">Rs 0</strong>) naye maheenay ke balance mein carry forward karein?
+          </p>
+        </div>
+        <button type="button" class="btn-rollover" id="btnAcceptRollover">Bachat Naye Maah Me Add Karein</button>
+      </div>
 
       <!-- VIEW 1: DASHBOARD -->
       <section id="viewDashboard" class="view-section active">
+        
+        <!-- STAT CARDS -->
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon green">📥</div>
+            <div class="stat-icon green">💵</div>
+            <div class="stat-info">
+              <h3>Is Maah Ki Aamdan</h3>
+              <p id="dashMonthIncome">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">🧾</div>
+            <div class="stat-info">
+              <h3>Is Maah Ka Kharch</h3>
+              <p id="dashMonthExpense">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">🏦</div>
+            <div class="stat-info">
+              <h3>Is Maah Net Bachat</h3>
+              <p id="dashMonthSavings">Rs 0</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple">📥</div>
             <div class="stat-info">
               <h3>Zaati Lena (Receivable)</h3>
               <p id="dashReceivable">Rs 0</p>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon red">📤</div>
-            <div class="stat-info">
-              <h3>Zaati Dena (Payable)</h3>
-              <p id="dashPayable">Rs 0</p>
+        </div>
+
+        <!-- ANIMATED VISUAL COMPARISON CHART -->
+        <div class="chart-container">
+          <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 4px;">📊 Aamdan vs Kharch Ka Animated Mawazna (Comparison)</h3>
+          <p style="font-size: 12px; color: var(--text-muted);">Selected period ke mutabiq aamdan, kharch aur bachat ki ratio</p>
+
+          <div class="comparison-bars">
+            <div class="bar-row">
+              <div class="bar-header">
+                <span style="color: var(--success);">🟢 Kul Aamdan (Income)</span>
+                <span id="chartIncomeVal">Rs 0</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill income" id="barIncome" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon purple">👨‍👩‍👧‍👦</div>
-            <div class="stat-info">
-              <h3>Family Members</h3>
-              <p id="dashFamilyCount">0</p>
+
+            <div class="bar-row">
+              <div class="bar-header">
+                <span style="color: var(--danger);">🔴 Kul Kharch (Expenses)</span>
+                <span id="chartExpenseVal">Rs 0</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill expense" id="barExpense" style="width: 0%;"></div>
+              </div>
             </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon blue">💰</div>
-            <div class="stat-info">
-              <h3>Kameti Pool (Total)</h3>
-              <p id="dashKametiTotal">Rs 0</p>
+
+            <div class="bar-row">
+              <div class="bar-header">
+                <span style="color: var(--accent);">🔵 Net Bachat (Savings)</span>
+                <span id="chartSavingsVal">Rs 0</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill savings" id="barSavings" style="width: 0%;"></div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="section-header">
-          <h3 style="font-size: 17px; font-weight: 700;">Haliyah Activity</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 800;">Haliyah Activity (Recent)</h3>
         </div>
         <div id="recentActivityList" class="card-list"></div>
       </section>
 
       <!-- VIEW 2: FAMILY TREE -->
       <section id="viewFamily" class="view-section">
-        <div class="section-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
-            <h3 style="font-size: 18px; font-weight: 800;">Family Tree & Khandaan Members</h3>
+            <h3 style="font-size: 18px; font-weight: 800;">🌳 Family Tree & Khandaan Members</h3>
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
-              Yeh wo members hain jo is Family Group se jure hain aur shared khata dekh sakte hain
+              Yeh members aap ke Family Group ka hissa hain aur shared records dekh sakte hain
             </p>
           </div>
+          <button type="button" class="btn-rollover" id="btnSwitchFamilyModal">+ Join / Switch Family Code</button>
         </div>
 
-        <div class="family-grid" id="familyMemberList">
-          <!-- Dynamically filled -->
-        </div>
-
-        <div style="margin-top: 24px; padding: 18px; background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border);">
-          <h4 style="font-size: 14px; font-weight: 700; color: var(--primary);">Naye Family Member Ko Kese Shamil Karein?</h4>
-          <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
-            Apne kisi bhi ghar walay ko app ka link bhejein: <strong>apna-khata-advance.vercel.app</strong><br>
-            Wo registration ke waqt Join Code mein yeh code likhein: <strong style="color: #fff;" id="shareInviteCode">------</strong>
-          </p>
-        </div>
+        <div class="stats-grid" id="familyMemberList"></div>
       </section>
 
       <!-- VIEW 3: ZAATI PRIVATE KHATA -->
       <section id="viewPrivateKhata" class="view-section">
-        <div class="section-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="font-size: 18px; font-weight: 800;">🔒 Zaati Private Khata</h3>
             <p style="font-size: 12px; color: var(--danger); margin-top: 3px;">
-              Yeh bilkul confidential hai — isay family ka koi bhi member nahi dekh sakta, sirf aap dekh sakte hain.
+              Yeh 100% confidential hai — family ka koi bhi member isay nahi dekh sakta, sirf aap dekh sakte hain.
             </p>
           </div>
-          <button type="button" class="btn-add" id="openPrivateKhataBtn">+ Zaati Entry Likhein</button>
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openPrivateKhataBtn">+ Zaati Entry Likhein</button>
         </div>
-
         <div id="privateKhataList" class="card-list"></div>
       </section>
 
       <!-- VIEW 4: FAMILY SHARED KHATA -->
       <section id="viewSharedKhata" class="view-section">
-        <div class="section-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="font-size: 18px; font-weight: 800;">👨‍👩‍👧 Family Shared Khata</h3>
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
-              Gharane ka mushtarka khata — yahan nazar aata hai k kis fard ne kya lain dain likha
+              Gharane ka mushtarka khata — yahan har member ka likha hua lain dain share hota hai
             </p>
           </div>
-          <button type="button" class="btn-add" id="openSharedKhataBtn">+ Family Khata Entry</button>
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openSharedKhataBtn">+ Family Entry Likhein</button>
         </div>
-
         <div id="sharedKhataList" class="card-list"></div>
       </section>
 
       <!-- VIEW 5: COMMITTEE / KAMETI -->
       <section id="viewKameti" class="view-section">
-        <div class="section-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="font-size: 18px; font-weight: 800;">👥 Committee / Kameti Tracker</h3>
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Kul pool, maahana qist, payout mahina aur adaigi ka hisaab</p>
           </div>
-          <button type="button" class="btn-add" id="openKametiModalBtn">+ Nayi Kameti Shuru Karein</button>
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openKametiModalBtn">+ Nayi Kameti Shuru Karein</button>
         </div>
-
         <div id="kametiList" class="card-list"></div>
       </section>
 
       <!-- VIEW 6: GHAR KA BUDGET -->
       <section id="viewFinance" class="view-section">
-        <div class="section-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="font-size: 18px; font-weight: 800;">🏠 Ghar Ka Budget (Aamdan & Kharch)</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Salary, rashan, bijli bill aur bacho ke ikhrajaat</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Selected maheenay ke mutabiq aamdan aur ikhrajaat</p>
           </div>
-          <button type="button" class="btn-add" id="openFinanceModalBtn">+ Aamdan / Kharch Likhein</button>
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 20px;" id="openFinanceModalBtn">+ Aamdan / Kharch Likhein</button>
         </div>
-
-        <div class="stats-grid" style="margin-bottom: 20px;">
-          <div class="stat-card">
-            <div class="stat-icon green">💵</div>
-            <div class="stat-info">
-              <h3>Kul Aamdan</h3>
-              <p id="financeTotalIncome">Rs 0</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon red">🧾</div>
-            <div class="stat-info">
-              <h3>Kul Kharch</h3>
-              <p id="financeTotalExpense">Rs 0</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon blue">🏦</div>
-            <div class="stat-info">
-              <h3>Maahana Bachat</h3>
-              <p id="financeNetSavings">Rs 0</p>
-            </div>
-          </div>
-        </div>
-
         <div id="financeList" class="card-list"></div>
+      </section>
+
+      <!-- VIEW 7: SETTINGS & PROFILE DELETE -->
+      <section id="viewSettings" class="view-section">
+        <div style="max-width: 600px; margin: 0 auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px;">
+          <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">⚙️ Profile & Account Settings</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Aap ka zaati account aur security options</p>
+
+          <div style="background: var(--bg-card-subtle); padding: 16px; border-radius: var(--radius-md); margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-muted);">Aap Ka Naam:</span>
+              <strong id="settingsUserName">---</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-muted);">Mobile Number:</span>
+              <strong id="settingsUserPhone">---</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="color: var(--text-muted);">Family Role:</span>
+              <strong id="settingsUserRole">---</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Family Name:</span>
+              <strong id="settingsFamilyName">---</strong>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 20px;">
+            <h4 style="font-size: 15px; font-weight: 800; color: var(--danger); margin-bottom: 6px;">Delete Profile (Permanent)</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Agar aap apni profile delete karna chahte hain to is se aap ka account aur zaati entries mukammal tor par delete ho jayengi.
+            </p>
+            <button type="button" style="background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.4); color: var(--danger); padding: 12px 20px; border-radius: var(--radius-md); font-weight: 800; cursor: pointer;" id="btnDeleteProfile">Apni Profile Delete Karein</button>
+          </div>
+        </div>
       </section>
 
     </main>
@@ -301,7 +369,6 @@
       </div>
       <form id="khataForm">
         <input type="hidden" id="khataIsPrivate" value="true">
-
         <div class="form-group">
           <label for="khataPerson">Shakhs Ka Naam</label>
           <input type="text" id="khataPerson" class="form-input" placeholder="Maslan: Ali, Usman, Chacha ji" required>
@@ -314,7 +381,7 @@
           <label for="khataType">Hisaab Ki Qisam</label>
           <select id="khataType" class="form-select" required>
             <option value="receivable">Maine diye (Mujhe wapas lene hain)</option>
-            <option value="payable">Is ne diye (Mujhe wapas dene hain)</option>
+            <option value="payable">Is ne mujhe diye (Mujhe wapas dene hain)</option>
             <option value="settlement_received">Is ne wapas diye (Khata wapsi)</option>
             <option value="settlement_paid">Maine wapas diye (Khata adaigi)</option>
           </select>
@@ -325,7 +392,7 @@
         </div>
         <div class="form-group">
           <label for="khataNote">Wajah / Note</label>
-          <input type="text" id="khataNote" class="form-input" placeholder="Maslan: Shopping ke liye, dukan ka saman">
+          <input type="text" id="khataNote" class="form-input" placeholder="Maslan: Saman ke liye, Udhaar">
         </div>
         <button type="submit" class="btn-primary">Save Karein</button>
       </form>
@@ -342,7 +409,7 @@
       <form id="kametiForm">
         <div class="form-group">
           <label for="kametiName">Kameti Ka Naam</label>
-          <input type="text" id="kametiName" class="form-input" placeholder="Maslan: Mohalla Kameti 1 Lakh" required>
+          <input type="text" id="kametiName" class="form-input" placeholder="Maslan: Committee 1 Lakh" required>
         </div>
         <div class="form-group">
           <label for="kametiTotal">Kul Raqam (Total Pool)</label>
@@ -390,7 +457,7 @@
         </div>
         <div class="form-group">
           <label for="finCategory">Category</label>
-          <input type="text" id="finCategory" class="form-input" placeholder="Maslan: Rashan, Bijli Bill, Salary, Dawaai, Fee" required list="catList">
+          <input type="text" id="finCategory" class="form-input" placeholder="Maslan: Rashan, Bijli Bill, Salary, Fee" required list="catList">
           <datalist id="catList">
             <option value="Salary (Tankhwah)">
             <option value="Rashan & Sauda">
@@ -416,7 +483,24 @@
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION -->
+  <!-- MODAL: SWITCH / JOIN FAMILY -->
+  <div class="modal-overlay" id="switchFamilyModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Family Code Se Join Karein</h3>
+        <button type="button" class="btn-close-modal" data-close="switchFamilyModal">✕</button>
+      </div>
+      <form id="switchFamilyForm">
+        <div class="form-group">
+          <label for="switchFamilyCode">Family Invite Code</label>
+          <input type="text" id="switchFamilyCode" class="form-input" placeholder="6-digit Code (e.g. 5D8F1A)" required>
+        </div>
+        <button type="submit" class="btn-primary">Family Join Karein</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST -->
   <div class="toast-notice" id="toastNotice">Khata save ho gaya</div>
 
   <!-- Scripts -->

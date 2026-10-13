@@ -1,18 +1,21 @@
 -- ==============================================================================
--- Apna Khata Advance - Clean Migration & Schema Setup
+-- Apna Khata Advance - Clean Migration & Schema Setup (v3 - Month Rollover & Profile Delete)
 -- ==============================================================================
 
 create extension if not exists pgcrypto;
 
--- Purane functions drop karein taake signature conflict na ho
+-- Purane functions drop karein
 drop function if exists public.app_register(text, text, text);
 drop function if exists public.app_register(text, text, text, text, text, text);
 drop function if exists public.app_login(text, text);
 drop function if exists public.app_restore_session();
 drop function if exists public.app_logout();
 drop function if exists public.get_family_members();
+drop function if exists public.app_delete_profile();
+drop function if exists public.app_join_family(text);
 
--- Purane tables ko safai se drop karein
+-- Purane tables drop karein
+drop table if exists public.month_rollovers cascade;
 drop table if exists public.committee_records cascade;
 drop table if exists public.committees cascade;
 drop table if exists public.household_finance cascade;
@@ -29,7 +32,7 @@ create table public.families (
   created_at timestamptz not null default now()
 );
 
--- 2. Users Table (with Family Link and Member Role)
+-- 2. Users Table
 create table public.app_users (
   id uuid primary key default gen_random_uuid(),
   phone text unique not null,
@@ -109,10 +112,22 @@ create table public.household_finance (
   created_at timestamptz not null default now()
 );
 
+-- 8. Monthly Rollovers / Purana Hisaab & Savings forward
+create table public.month_rollovers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.app_users(id) on delete cascade,
+  family_id uuid references public.families(id) on delete cascade,
+  month_str text not null, -- e.g. "2026-10"
+  carried_forward_savings numeric(12, 2) not null default 0,
+  note text,
+  created_at timestamptz not null default now()
+);
+
 -- Indexes
 create index idx_khata_user_fam on public.khata_entries(user_id, family_id, is_private);
 create index idx_comm_user_fam on public.committees(user_id, family_id);
 create index idx_fin_user_fam on public.household_finance(user_id, family_id);
+create index idx_rollovers on public.month_rollovers(user_id, month_str);
 
 -- ==============================================================================
 -- Security & Auth RPC Functions
@@ -173,10 +188,12 @@ security definer
 as $$
 declare
   clean_phone text;
+  clean_code text;
   v_user_id uuid;
   v_family_id uuid;
   v_token text;
   v_code text;
+  v_fam record;
 begin
   clean_phone := regexp_replace(input_phone, '[^0-9+]', '', 'g');
   if length(clean_phone) < 10 then
@@ -193,10 +210,12 @@ begin
     return jsonb_build_object('success', false, 'error', 'Yeh mobile number pehle se registered hai. Login karein.');
   end if;
 
-  if input_join_code is not null and trim(input_join_code) != '' then
-    select id into v_family_id from public.families where upper(invite_code) = upper(trim(input_join_code));
+  clean_code := upper(trim(coalesce(input_join_code, '')));
+
+  if clean_code != '' then
+    select id into v_family_id from public.families where upper(invite_code) = clean_code;
     if v_family_id is null then
-      return jsonb_build_object('success', false, 'error', 'Family Join Code ghalat hai. Dobara check karein.');
+      return jsonb_build_object('success', false, 'error', 'Family Join Code (' || clean_code || ') ghalat hai. Dobara check karein.');
     end if;
   else
     v_code := upper(substring(md5(random()::text), 1, 6));
@@ -209,13 +228,23 @@ begin
   values (clean_phone, trim(input_name), crypt(input_password, gen_salt('bf', 8)), v_family_id, coalesce(nullif(trim(input_role), ''), 'Member'))
   returning id into v_user_id;
 
+  select family_name, invite_code into v_fam from public.families where id = v_family_id;
+
   v_token := encode(gen_random_bytes(32), 'hex');
   insert into public.app_sessions (user_id, token) values (v_user_id, v_token);
 
   return jsonb_build_object(
     'success', true,
     'session_token', v_token,
-    'user', jsonb_build_object('id', v_user_id, 'phone', clean_phone, 'name', trim(input_name), 'family_id', v_family_id, 'role', input_role)
+    'user', jsonb_build_object(
+      'id', v_user_id,
+      'phone', clean_phone,
+      'name', trim(input_name),
+      'family_id', v_family_id,
+      'role', input_role,
+      'family_name', v_fam.family_name,
+      'invite_code', v_fam.invite_code
+    )
   );
 end;
 $$;
@@ -326,6 +355,60 @@ begin
 end;
 $$;
 
+-- RPC: Delete Own Profile
+create or replace function public.app_delete_profile()
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_user_id uuid;
+begin
+  v_user_id := public.current_app_user_id();
+  if v_user_id is null then
+    return jsonb_build_object('success', false, 'error', 'Session expire ho gaya hai');
+  end if;
+
+  delete from public.app_users where id = v_user_id;
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+-- RPC: Join or Switch Family by Code
+create or replace function public.app_join_family(input_code text)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_user_id uuid;
+  v_fam record;
+begin
+  v_user_id := public.current_app_user_id();
+  if v_user_id is null then
+    return jsonb_build_object('success', false, 'error', 'Pehle login karein');
+  end if;
+
+  select id, family_name, invite_code into v_fam
+  from public.families
+  where upper(invite_code) = upper(trim(input_code));
+
+  if v_fam.id is null then
+    return jsonb_build_object('success', false, 'error', 'Family Invite Code ghalat hai');
+  end if;
+
+  update public.app_users
+  set family_id = v_fam.id
+  where id = v_user_id;
+
+  return jsonb_build_object(
+    'success', true,
+    'family_name', v_fam.family_name,
+    'invite_code', v_fam.invite_code
+  );
+end;
+$$;
+
 create or replace function public.app_logout()
 returns jsonb
 language plpgsql
@@ -353,6 +436,7 @@ alter table public.khata_entries enable row level security;
 alter table public.committees enable row level security;
 alter table public.committee_records enable row level security;
 alter table public.household_finance enable row level security;
+alter table public.month_rollovers enable row level security;
 
 -- Policies
 create policy fam_select on public.families for select using (id = public.current_app_family_id());
@@ -382,7 +466,12 @@ create policy hf_insert on public.household_finance for insert with check (user_
 create policy hf_update on public.household_finance for update using (user_id = public.current_app_user_id());
 create policy hf_delete on public.household_finance for delete using (user_id = public.current_app_user_id());
 
--- Permissions (Explicit function signatures specified)
+create policy roll_select on public.month_rollovers for select using (user_id = public.current_app_user_id());
+create policy roll_insert on public.month_rollovers for insert with check (user_id = public.current_app_user_id());
+create policy roll_update on public.month_rollovers for update using (user_id = public.current_app_user_id());
+create policy roll_delete on public.month_rollovers for delete using (user_id = public.current_app_user_id());
+
+-- Permissions
 grant usage on schema public to anon, authenticated;
 grant all on public.families to anon, authenticated;
 grant all on public.app_users to anon, authenticated;
@@ -390,8 +479,12 @@ grant all on public.khata_entries to anon, authenticated;
 grant all on public.committees to anon, authenticated;
 grant all on public.committee_records to anon, authenticated;
 grant all on public.household_finance to anon, authenticated;
+grant all on public.month_rollovers to anon, authenticated;
+
 grant execute on function public.app_register(text, text, text, text, text, text) to anon, authenticated;
 grant execute on function public.app_login(text, text) to anon, authenticated;
 grant execute on function public.app_restore_session() to anon, authenticated;
 grant execute on function public.app_logout() to anon, authenticated;
 grant execute on function public.get_family_members() to anon, authenticated;
+grant execute on function public.app_delete_profile() to anon, authenticated;
+grant execute on function public.app_join_family(text) to anon, authenticated;
