@@ -618,6 +618,10 @@
     const privEntries = filtered.filter((r) => r.is_private);
     const sharedEntries = filtered.filter((r) => !r.is_private);
 
+    // Render Person Summaries (Maqsood Other Khata Style)
+    renderPersonSummary("privatePersonSummaryList", privEntries);
+    renderPersonSummary("sharedPersonSummaryList", sharedEntries);
+
     if (privList) {
       if (!privEntries.length) {
         privList.innerHTML = `<div class="empty-state"><p>Is period me koi Zaati Private entry nahi hai.</p></div>`;
@@ -639,6 +643,53 @@
     });
   }
 
+  function renderPersonSummary(containerId, entries) {
+    const container = $(containerId);
+    if (!container) return;
+
+    if (!entries.length) {
+      container.innerHTML = `<p style="font-size:12px; color:var(--text-muted); grid-column:1/-1;">Koi record mojood nahi.</p>`;
+      return;
+    }
+
+    // Group by person_name
+    const map = {};
+    entries.forEach((r) => {
+      const name = r.person_name.trim();
+      if (!map[name]) map[name] = { name, receivable: 0, payable: 0, count: 0 };
+      const amt = Number(r.amount || 0);
+      map[name].count++;
+      if (r.entry_type === "receivable") map[name].receivable += amt;
+      else if (r.entry_type === "payable") map[name].payable += amt;
+      else if (r.entry_type === "settlement_received") map[name].receivable -= amt;
+      else if (r.entry_type === "settlement_paid") map[name].payable -= amt;
+    });
+
+    const persons = Object.values(map);
+    container.innerHTML = persons.map((p) => {
+      const net = p.receivable - p.payable;
+      let statusHtml = "";
+      if (net > 0) {
+        statusHtml = `<span style="color:var(--success); font-weight:800;">Lene hain: ${money(net)}</span>`;
+      } else if (net < 0) {
+        statusHtml = `<span style="color:var(--danger); font-weight:800;">Dene hain: ${money(Math.abs(net))}</span>`;
+      } else {
+        statusHtml = `<span style="color:var(--text-muted); font-weight:700;">Hisaab Barabar (Rs 0)</span>`;
+      }
+
+      return `
+        <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <strong style="font-size:14px; color:var(--text-main);">${escapeHtml(p.name)}</strong>
+            <span style="font-size:11px; color:var(--text-muted);">${p.count} entries</span>
+          </div>
+          <div style="font-size:12px; margin-top:2px;">
+            ${statusHtml}
+          </div>
+        </div>`;
+    }).join("");
+  }
+
   function renderKhataCard(row, isPrivate) {
     const typeLabels = {
       receivable: { text: "Maine diye (Lene hain)", cls: "amount-receivable" },
@@ -657,6 +708,7 @@
             <span class="${isPrivate ? "tag-private" : "tag-family"}">${isPrivate ? "🔒 Zaati" : "👨‍👩‍👧 Family"}</span>
           </h4>
           <span style="font-size:12px; color:var(--text-muted);">${info.text} · ${formatDateTime(row.entry_date)}</span>
+          ${row.user_name ? `<span style="font-size:11px; color:var(--primary); margin-left:6px;">(By ${escapeHtml(row.user_name)})</span>` : ""}
           ${row.note ? `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">"${escapeHtml(row.note)}"</div>` : ""}
         </div>
         <div style="display:flex; align-items:center; gap:14px;">
@@ -674,6 +726,7 @@
     const type = $("khataType").value;
     const amount = Number($("khataAmount").value);
     const note = $("khataNote").value.trim();
+    const syncBudget = $("syncWithBudget")?.checked;
 
     try {
       await api("khata_entries", {
@@ -691,8 +744,29 @@
           note: note || null
         })
       });
+
+      // AUTO ADJUST WITH HOUSEHOLD INCOME / EXPENSE IF USER CONFIRMED
+      if (!isPrivate && syncBudget) {
+        const isIncome = type === "payable" || type === "settlement_received"; // Pese mile hain
+        await api("household_finance", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: state.user.id,
+            user_name: state.user.name,
+            user_role: state.user.role || "Member",
+            family_id: state.user.family_id,
+            finance_type: isIncome ? "income" : "expense",
+            category: `Khata Adjustment (${person})`,
+            amount: amount,
+            note: `Auto-sync: ${type === "payable" ? "Pese liye" : "Pese diye"}`
+          })
+        });
+        await loadFinances();
+      }
+
       closeModal("khataModal");
       $("khataForm").reset();
+      $("budgetImpactBox").style.display = "none";
       toast(isPrivate ? "Zaati khata save ho gaya!" : "Family khata save ho gaya!");
       await loadKhata();
       renderAllViews();
@@ -1021,17 +1095,147 @@
     $("financeForm").addEventListener("submit", handleAddFinance);
 
     // Offline Mobile Backup Downloads
+    $("btnDownloadBackupPdf")?.addEventListener("click", downloadBackupPdf);
+    $("btnDownloadBackupExcel")?.addEventListener("click", downloadBackupExcel);
     $("btnDownloadBackupJson")?.addEventListener("click", downloadBackupJson);
-    $("btnDownloadBackupCsv")?.addEventListener("click", downloadBackupCsv);
+
+    // Dynamic prompt on Khata type change
+    $("khataType")?.addEventListener("change", updateKhataBudgetPrompt);
 
     if ($("kametiStart")) {
       $("kametiStart").value = new Date().toISOString().slice(0, 10);
     }
   }
 
+  function updateKhataBudgetPrompt() {
+    const isPrivate = $("khataIsPrivate").value === "true";
+    const box = $("budgetImpactBox");
+    if (!box) return;
+
+    if (isPrivate) {
+      box.style.display = "none";
+      return;
+    }
+
+    const type = $("khataType").value;
+    box.style.display = "block";
+    const txt = $("syncBudgetText");
+    const desc = $("syncBudgetDesc");
+
+    if (type === "receivable") {
+      txt.textContent = "Ghar ke Kharch (Expenses) mein add karein?";
+      desc.textContent = "Kyunke aap ne ghar ke peson se kisi ko diye hain.";
+    } else if (type === "payable") {
+      txt.textContent = "Ghar ki Aamdan (Income) mein add karein?";
+      desc.textContent = "Kyunke kisi ne ghar ke liye pese diye hain.";
+    } else if (type === "settlement_received") {
+      txt.textContent = "Ghar ki Aamdan (Khata Wapsi) mein add karein?";
+      desc.textContent = "Pese wapas mile hain to balance mein jama honge.";
+    } else {
+      txt.textContent = "Ghar ke Kharch (Khata Adaigi) mein add karein?";
+      desc.textContent = "Wapas ada kiye hain to balance se minus honge.";
+    }
+  }
+
   // ----------------------------------------------------------------------------
-  // OFFLINE MOBILE BACKUP GENERATORS
+  // OFFLINE MOBILE BACKUP GENERATORS (PDF & EXCEL WORKBOOK)
   // ----------------------------------------------------------------------------
+  function downloadBackupPdf() {
+    const clean = (val) => String(val || "").normalize("NFKD").replace(/[^\x20-\x7E]/g, "?").replace(/([\\()])/g, "\\$1");
+    const lines = [
+      "Apna Khata Advance - Complete Family & Khata Report",
+      `Generated: ${new Date().toLocaleString("en-PK", { timeZone: "Asia/Karachi" })}`,
+      `Family: ${state.user?.family_name || "Family"} | Code: ${state.user?.invite_code || "-"}`,
+      "",
+      "--- KHATA ENTRIES (LENA-DENA) ---",
+      ...state.khataEntries.map((k) => `${formatDate(k.entry_date)} | ${k.person_name} | ${k.is_private ? "[Zaati]" : "[Family]"} | ${money(k.amount)} | ${k.entry_type} | By: ${k.user_name || "Member"}`),
+      "",
+      "--- GHAR KA BUDGET (AAMDAN & KHARCH) ---",
+      ...state.finances.map((f) => `${formatDate(f.entry_date)} | ${f.category} | ${f.finance_type === "income" ? "+Income" : "-Expense"} | ${money(f.amount)} | By: ${f.user_name || "Member"}`),
+      "",
+      "--- COMMITTEES / KAMETI ---",
+      ...state.committees.map((c) => `${c.name} | Total: ${money(c.total_amount)} | Monthly: ${money(c.monthly_amount)} | Duration: ${c.total_months} months`)
+    ];
+
+    const wrapped = lines.flatMap((line) => {
+      const text = clean(line);
+      const parts = [];
+      for (let i = 0; i < text.length; i += 90) parts.push(text.slice(i, i + 90));
+      return parts.length ? parts : [""];
+    });
+
+    const pages = [];
+    for (let i = 0; i < wrapped.length; i += 46) pages.push(wrapped.slice(i, i + 46));
+    if (!pages.length) pages.push([""]);
+
+    const objects = ["", "<< /Type /Catalog /Pages 2 0 R >>", ""];
+    const fontId = 3 + pages.length * 2;
+    const pageIds = [];
+
+    pages.forEach((page, index) => {
+      const pageId = 3 + index * 2;
+      const contentId = pageId + 1;
+      pageIds.push(`${pageId} 0 R`);
+      const commands = `BT /F1 9 Tf 36 805 Td 11 TL ${page.map((line, lIdx) => `${lIdx ? "T* " : ""}(${line}) Tj`).join(" ")} ET`;
+      objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`;
+      objects[contentId] = `<< /Length ${commands.length} >>\nstream\n${commands}\nendstream`;
+    });
+
+    objects[2] = `<< /Type /Pages /Kids [${pageIds.join(" ")}] /Count ${pages.length} >>`;
+    objects[fontId] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+
+    let pdf = "%PDF-1.4\n";
+    const offsets = [0];
+    for (let id = 1; id < objects.length; id++) {
+      offsets[id] = pdf.length;
+      pdf += `${id} 0 obj\n${objects[id]}\nendobj\n`;
+    }
+    const xref = pdf.length;
+    pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+    for (let id = 1; id < objects.length; id++) pdf += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
+    pdf += `trailer << /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+
+    const blob = new Blob([pdf], { type: "application/pdf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Apna-Khata-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    toast("PDF Report mobile mein save ho gayi!");
+  }
+
+  function downloadBackupExcel() {
+    const xml = (v) => escapeHtml(v).replace(/'/g, "&apos;");
+
+    // Khata Sheet
+    const khataRows = state.khataEntries.map((k) =>
+      `<Row><Cell><Data ss:Type="String">${xml(k.is_private ? "Zaati" : "Family")}</Data></Cell><Cell><Data ss:Type="String">${xml(formatDateTime(k.entry_date))}</Data></Cell><Cell><Data ss:Type="String">${xml(k.person_name)}</Data></Cell><Cell><Data ss:Type="Number">${Number(k.amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(k.entry_type)}</Data></Cell><Cell><Data ss:Type="String">${xml(k.user_name || "Member")}</Data></Cell><Cell><Data ss:Type="String">${xml(k.note || "")}</Data></Cell></Row>`
+    ).join("");
+    const khataSheet = `<Worksheet ss:Name="Khata Lena-Dena"><Table><Row><Cell><Data ss:Type="String">Qisam</Data></Cell><Cell><Data ss:Type="String">Tareekh</Data></Cell><Cell><Data ss:Type="String">Shakhs</Data></Cell><Cell><Data ss:Type="String">Raqam</Data></Cell><Cell><Data ss:Type="String">Type</Data></Cell><Cell><Data ss:Type="String">By</Data></Cell><Cell><Data ss:Type="String">Note</Data></Cell></Row>${khataRows}</Table></Worksheet>`;
+
+    // Budget Sheet
+    const budgetRows = state.finances.map((f) =>
+      `<Row><Cell><Data ss:Type="String">${xml(f.finance_type === "income" ? "Aamdan" : "Kharch")}</Data></Cell><Cell><Data ss:Type="String">${xml(formatDateTime(f.entry_date))}</Data></Cell><Cell><Data ss:Type="String">${xml(f.category)}</Data></Cell><Cell><Data ss:Type="Number">${Number(f.amount)}</Data></Cell><Cell><Data ss:Type="String">${xml(f.user_name || "Member")}</Data></Cell><Cell><Data ss:Type="String">${xml(f.note || "")}</Data></Cell></Row>`
+    ).join("");
+    const budgetSheet = `<Worksheet ss:Name="Ghar Ka Budget"><Table><Row><Cell><Data ss:Type="String">Qisam</Data></Cell><Cell><Data ss:Type="String">Tareekh</Data></Cell><Cell><Data ss:Type="String">Category</Data></Cell><Cell><Data ss:Type="String">Raqam</Data></Cell><Cell><Data ss:Type="String">By</Data></Cell><Cell><Data ss:Type="String">Note</Data></Cell></Row>${budgetRows}</Table></Worksheet>`;
+
+    // Committee Sheet
+    const comRows = state.committees.map((c) =>
+      `<Row><Cell><Data ss:Type="String">${xml(c.name)}</Data></Cell><Cell><Data ss:Type="Number">${Number(c.total_amount)}</Data></Cell><Cell><Data ss:Type="Number">${Number(c.monthly_amount)}</Data></Cell><Cell><Data ss:Type="Number">${c.total_months}</Data></Cell><Cell><Data ss:Type="String">${xml(c.start_date)}</Data></Cell></Row>`
+    ).join("");
+    const comSheet = `<Worksheet ss:Name="Committees"><Table><Row><Cell><Data ss:Type="String">Naam</Data></Cell><Cell><Data ss:Type="String">Total Pool</Data></Cell><Cell><Data ss:Type="String">Monthly</Data></Cell><Cell><Data ss:Type="String">Months</Data></Cell><Cell><Data ss:Type="String">Start Date</Data></Cell></Row>${comRows}</Table></Worksheet>`;
+
+    const workbookXml = `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">${khataSheet}${budgetSheet}${comSheet}</Workbook>`;
+
+    const blob = new Blob([workbookXml], { type: "application/vnd.ms-excel" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Apna-Khata-Workbook-${new Date().toISOString().slice(0, 10)}.xls`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    toast("Excel Workbook mobile mein save ho gaya!");
+  }
+
   function downloadBackupJson() {
     const backupData = {
       appName: "Apna Khata Advance",
@@ -1050,41 +1254,7 @@
     link.download = `Apna-Khata-Backup-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    toast("JSON Backup mobile me save ho gaya!");
-  }
-
-  function downloadBackupCsv() {
-    const headers = ["Qisam", "Tareekh / Waqt", "Shakhs ya Category", "Raqam", "Type", "Note", "Entered By"];
-    const rows = [
-      headers,
-      ...state.khataEntries.map((k) => [
-        k.is_private ? "Zaati Khata" : "Family Khata",
-        formatDateTime(k.entry_date),
-        k.person_name,
-        k.amount,
-        k.entry_type,
-        k.note || "",
-        k.user_name || "Member"
-      ]),
-      ...state.finances.map((f) => [
-        "Ghar Ka Budget",
-        formatDateTime(f.entry_date),
-        f.category,
-        f.amount,
-        f.finance_type === "income" ? "Aamdan" : "Kharch",
-        f.note || "",
-        f.user_name || "Member"
-      ])
-    ];
-
-    const csvContent = "\ufeff" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Apna-Khata-Sheet-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    toast("Excel / CSV sheet download ho gayi!");
+    toast("JSON Data Backup download ho gaya!");
   }
 
   initTheme();
