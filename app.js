@@ -234,9 +234,15 @@
     const role = $("regRole").value;
     const phone = $("regPhone").value.trim();
     const password = $("regPassword").value;
-    const familyName = $("regFamilyName").value.trim();
-    const joinCode = $("regJoinCode").value.trim();
+    const isNewFamMode = $("regModeNewFam") ? $("regModeNewFam").classList.contains("active") : true;
+    const familyName = isNewFamMode ? $("regFamilyName").value.trim() : null;
+    const joinCode = !isNewFamMode ? $("regJoinCode").value.trim() : null;
     const btn = $("regSubmitBtn");
+
+    if (!isNewFamMode && (!joinCode || joinCode.length < 4)) {
+      alert("Meherbani farma kar 6-digit Family Invite Code darj karein jo ghar ke Sarbarah se mila hai.");
+      return;
+    }
 
     try {
       btn.disabled = true;
@@ -1424,6 +1430,72 @@
       $("tabLoginBtn").classList.remove("active");
       $("registerForm").style.display = "block";
       $("loginForm").style.display = "none";
+    });
+
+    // Registration Family Setup Mode Tabs
+    const btnNewFam = $("regModeNewFam");
+    const btnJoinFam = $("regModeJoinFam");
+    const secNewFam = $("sectionNewFam");
+    const secJoinFam = $("sectionJoinFam");
+    if (btnNewFam && btnJoinFam && secNewFam && secJoinFam) {
+      btnNewFam.addEventListener("click", () => {
+        btnNewFam.classList.add("active");
+        btnJoinFam.classList.remove("active");
+        secNewFam.style.display = "block";
+        secJoinFam.style.display = "none";
+        if ($("regJoinCode")) $("regJoinCode").value = "";
+      });
+      btnJoinFam.addEventListener("click", () => {
+        btnJoinFam.classList.add("active");
+        btnNewFam.classList.remove("active");
+        secJoinFam.style.display = "block";
+        secNewFam.style.display = "none";
+        if ($("regFamilyName")) $("regFamilyName").value = "";
+      });
+    }
+
+    // Intro Video Modal Handlers
+    const introModal = $("introVideoModal");
+    const introVideo = $("introVideoElem");
+    const openIntroVideo = () => {
+      if (introModal) {
+        introModal.style.display = "flex";
+        if (introVideo) {
+          introVideo.currentTime = 0;
+          introVideo.play().catch(() => {});
+        }
+      }
+    };
+    const closeIntroVideo = () => {
+      if (introModal) {
+        introModal.style.display = "none";
+        if (introVideo) {
+          introVideo.pause();
+        }
+      }
+    };
+
+    $("btnOpenIntroVideo")?.addEventListener("click", openIntroVideo);
+    $("btnOpenIntroVideoBottom")?.addEventListener("click", openIntroVideo);
+    $("appHeaderIntroVideoBtn")?.addEventListener("click", openIntroVideo);
+    $("navIntroVideoBtn")?.addEventListener("click", openIntroVideo);
+    $("btnCloseIntroVideo")?.addEventListener("click", closeIntroVideo);
+
+    if (introModal) {
+      introModal.addEventListener("click", (e) => {
+        if (e.target === introModal) closeIntroVideo();
+      });
+    }
+
+    // Video chapter seek buttons
+    document.querySelectorAll(".btn-chapter-jump").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const seekTime = parseFloat(btn.dataset.seek || "0");
+        if (introVideo) {
+          introVideo.currentTime = seekTime;
+          introVideo.play().catch(() => {});
+        }
+      });
     });
 
     // Toggle Password

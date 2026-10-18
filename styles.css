@@ -864,3 +864,13 @@ body.light-theme .person-card-amount.payable-amt {
   object-fit: cover;
   display: block;
 }
+
+/* Intro Video Chapter Buttons */
+.btn-chapter-jump {
+  transition: all 0.2s ease;
+}
+.btn-chapter-jump:hover {
+  border-color: var(--primary) !important;
+  background: var(--bg-card-hover) !important;
+  transform: translateY(-1px);
+}
