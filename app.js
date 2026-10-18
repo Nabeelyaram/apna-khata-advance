@@ -1524,12 +1524,16 @@
       const container = $("chapterContainer");
       if (!container) return;
       const list = TOUR_DATA[lang] || TOUR_DATA.urdu;
-      container.innerHTML = list.map((c, idx) => `
+      container.innerHTML = list.map((c, idx) => {
+        const m = Math.floor(c.time / 60);
+        const s = Math.floor(c.time % 60);
+        const timeStr = `${m}:${s < 10 ? '0' : ''}${s}`;
+        return `
         <button type="button" class="btn-chapter-jump" data-idx="${idx}" data-time="${c.time}" style="background: var(--bg-card); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; text-align: left; cursor: pointer; color: var(--text-main); font-size: 12px; display: flex; align-items: center; gap: 8px;">
-          <span style="font-weight: 800; color: var(--primary); font-size: 11px;">0:${Math.floor(c.time) < 10 ? '0' : ''}${Math.floor(c.time)}</span>
+          <span style="font-weight: 800; color: var(--primary); font-size: 11px;">${timeStr}</span>
           <span>${c.title}</span>
         </button>
-      `).join("");
+      `;}).join("");
 
       container.querySelectorAll(".btn-chapter-jump").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -1589,6 +1593,14 @@
           tourAudio.pause();
           btnPlayPause.textContent = "▶️ Play Aawaz";
         }
+      });
+    }
+
+    if (tourImg) {
+      tourImg.style.cursor = "pointer";
+      tourImg.title = "Play / Pause karne ke liye click karein";
+      tourImg.addEventListener("click", () => {
+        if (btnPlayPause) btnPlayPause.click();
       });
     }
 
@@ -1730,6 +1742,7 @@
     const openIntroVideo = () => {
       if (introModal) {
         introModal.style.display = "flex";
+        introModal.classList.add("active");
         renderTourChapters(tourLang);
         updateTourDisplay(0, true);
       }
@@ -1737,6 +1750,7 @@
 
     const closeIntroVideo = () => {
       if (introModal) {
+        introModal.classList.remove("active");
         introModal.style.display = "none";
         if (tourAudio) {
           tourAudio.pause();

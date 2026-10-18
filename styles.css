@@ -517,6 +517,22 @@ body {
   pointer-events: auto;
 }
 
+#introVideoModal {
+  z-index: 10000;
+}
+
+#introVideoModal.active {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+#introVideoModal:not(.active) {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 .modal-content {
   background: var(--bg-card);
   border: 1px solid var(--border);
