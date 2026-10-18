@@ -1458,21 +1458,21 @@
     const VIDEO_CHAPTERS = {
       urdu: [
         { time: 0.0, label: "0:00", title: "🏡 Nayi Family (No Code)" },
-        { time: 14.1, label: "0:14", title: "📊 Smart Dashboard" },
-        { time: 25.2, label: "0:25", title: "🔒 Zaati Private Khata" },
-        { time: 39.3, label: "0:39", title: "👨‍👩‍👧 Family Tree & Audit" },
-        { time: 51.2, label: "0:51", title: "💰 Ghar Ka Budget" },
-        { time: 60.7, label: "1:00", title: "🤝 Kameti Tracker" },
-        { time: 69.8, label: "1:09", title: "📥 Offline Backups" }
+        { time: 20.4, label: "0:20", title: "📊 Smart Dashboard" },
+        { time: 35.3, label: "0:35", title: "🔒 Zaati Private Khata" },
+        { time: 52.3, label: "0:52", title: "👨‍👩‍👧 Family Tree & Audit" },
+        { time: 68.9, label: "1:09", title: "💰 Ghar Ka Budget" },
+        { time: 86.0, label: "1:26", title: "🤝 Kameti Tracker" },
+        { time: 99.6, label: "1:40", title: "📥 Offline Backups" }
       ],
       english: [
         { time: 0.0, label: "0:00", title: "🏡 New Family Setup" },
-        { time: 16.1, label: "0:16", title: "📊 Smart Dashboard" },
-        { time: 29.2, label: "0:29", title: "🔒 Private Ledger" },
-        { time: 44.5, label: "0:44", title: "👨‍👩‍👧 Family Tree" },
-        { time: 56.2, label: "0:56", title: "💰 Household Budget" },
-        { time: 69.1, label: "1:09", title: "🤝 Committee Tracker" },
-        { time: 80.8, label: "1:20", title: "📥 Offline Backups" }
+        { time: 16.6, label: "0:17", title: "📊 Smart Dashboard" },
+        { time: 28.9, label: "0:29", title: "🔒 Private Ledger" },
+        { time: 44.4, label: "0:44", title: "👨‍👩‍👧 Family Tree" },
+        { time: 55.8, label: "0:56", title: "💰 Household Budget" },
+        { time: 68.6, label: "1:09", title: "🤝 Committee Tracker" },
+        { time: 77.7, label: "1:18", title: "📥 Offline Backups" }
       ]
     };
 

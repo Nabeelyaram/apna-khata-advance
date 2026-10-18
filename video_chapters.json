@@ -8,32 +8,32 @@
     {
       "step": 2,
       "title": "\ud83d\udcca Smart Dashboard",
-      "time": 14.1
+      "time": 20.4
     },
     {
       "step": 3,
       "title": "\ud83d\udd12 Zaati Private Khata",
-      "time": 25.2
+      "time": 35.3
     },
     {
       "step": 4,
       "title": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67 Family Tree & Audit",
-      "time": 39.3
+      "time": 52.3
     },
     {
       "step": 5,
       "title": "\ud83d\udcb0 Ghar Ka Budget",
-      "time": 51.2
+      "time": 68.9
     },
     {
       "step": 6,
       "title": "\ud83e\udd1d Kameti Tracker",
-      "time": 60.7
+      "time": 86.0
     },
     {
       "step": 7,
       "title": "\ud83d\udce5 Offline Backups",
-      "time": 69.8
+      "time": 99.6
     }
   ],
   "english": [
@@ -45,32 +45,32 @@
     {
       "step": 2,
       "title": "\ud83d\udcca Smart Dashboard",
-      "time": 16.1
+      "time": 16.6
     },
     {
       "step": 3,
       "title": "\ud83d\udd12 Private Ledger",
-      "time": 29.2
+      "time": 28.9
     },
     {
       "step": 4,
       "title": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67 Family Tree",
-      "time": 44.5
+      "time": 44.4
     },
     {
       "step": 5,
       "title": "\ud83d\udcb0 Household Budget",
-      "time": 56.2
+      "time": 55.8
     },
     {
       "step": 6,
       "title": "\ud83e\udd1d Committee Tracker",
-      "time": 69.1
+      "time": 68.6
     },
     {
       "step": 7,
       "title": "\ud83d\udce5 Offline Backups",
-      "time": 80.8
+      "time": 77.7
     }
   ]
 }
