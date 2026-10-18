@@ -1,0 +1,76 @@
+{
+  "urdu": [
+    {
+      "step": 1,
+      "title": "\ud83c\udfe1 Nayi Family (No Code)",
+      "time": 0.0
+    },
+    {
+      "step": 2,
+      "title": "\ud83d\udcca Smart Dashboard",
+      "time": 14.1
+    },
+    {
+      "step": 3,
+      "title": "\ud83d\udd12 Zaati Private Khata",
+      "time": 25.2
+    },
+    {
+      "step": 4,
+      "title": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67 Family Tree & Audit",
+      "time": 39.3
+    },
+    {
+      "step": 5,
+      "title": "\ud83d\udcb0 Ghar Ka Budget",
+      "time": 51.2
+    },
+    {
+      "step": 6,
+      "title": "\ud83e\udd1d Kameti Tracker",
+      "time": 60.7
+    },
+    {
+      "step": 7,
+      "title": "\ud83d\udce5 Offline Backups",
+      "time": 69.8
+    }
+  ],
+  "english": [
+    {
+      "step": 1,
+      "title": "\ud83c\udfe1 New Family Setup",
+      "time": 0.0
+    },
+    {
+      "step": 2,
+      "title": "\ud83d\udcca Smart Dashboard",
+      "time": 16.1
+    },
+    {
+      "step": 3,
+      "title": "\ud83d\udd12 Private Ledger",
+      "time": 29.2
+    },
+    {
+      "step": 4,
+      "title": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67 Family Tree",
+      "time": 44.5
+    },
+    {
+      "step": 5,
+      "title": "\ud83d\udcb0 Household Budget",
+      "time": 56.2
+    },
+    {
+      "step": 6,
+      "title": "\ud83e\udd1d Committee Tracker",
+      "time": 69.1
+    },
+    {
+      "step": 7,
+      "title": "\ud83d\udce5 Offline Backups",
+      "time": 80.8
+    }
+  ]
+}

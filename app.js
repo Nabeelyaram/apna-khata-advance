@@ -1454,13 +1454,116 @@
       });
     }
 
-    // Intro Video Modal Handlers
+    // Multilingual Video Chapters & Handlers
+    const VIDEO_CHAPTERS = {
+      urdu: [
+        { time: 0.0, label: "0:00", title: "🏡 Nayi Family (No Code)" },
+        { time: 14.1, label: "0:14", title: "📊 Smart Dashboard" },
+        { time: 25.2, label: "0:25", title: "🔒 Zaati Private Khata" },
+        { time: 39.3, label: "0:39", title: "👨‍👩‍👧 Family Tree & Audit" },
+        { time: 51.2, label: "0:51", title: "💰 Ghar Ka Budget" },
+        { time: 60.7, label: "1:00", title: "🤝 Kameti Tracker" },
+        { time: 69.8, label: "1:09", title: "📥 Offline Backups" }
+      ],
+      english: [
+        { time: 0.0, label: "0:00", title: "🏡 New Family Setup" },
+        { time: 16.1, label: "0:16", title: "📊 Smart Dashboard" },
+        { time: 29.2, label: "0:29", title: "🔒 Private Ledger" },
+        { time: 44.5, label: "0:44", title: "👨‍👩‍👧 Family Tree" },
+        { time: 56.2, label: "0:56", title: "💰 Household Budget" },
+        { time: 69.1, label: "1:09", title: "🤝 Committee Tracker" },
+        { time: 80.8, label: "1:20", title: "📥 Offline Backups" }
+      ]
+    };
+
+    let currentVideoLang = "urdu";
     const introModal = $("introVideoModal");
     const introVideo = $("introVideoElem");
+
+    function renderVideoChapters(lang) {
+      const container = $("chapterContainer");
+      if (!container) return;
+      const list = VIDEO_CHAPTERS[lang] || VIDEO_CHAPTERS.urdu;
+      container.innerHTML = list.map(c => `
+        <button type="button" class="btn-chapter-jump" data-seek="${c.time}" style="background: var(--bg-card); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; text-align: left; cursor: pointer; color: var(--text-main); font-size: 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 800; color: var(--primary); font-size: 11px;">${c.label}</span>
+          <span>${c.title}</span>
+        </button>
+      `).join("");
+
+      container.querySelectorAll(".btn-chapter-jump").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const seekTime = parseFloat(btn.dataset.seek || "0");
+          if (introVideo) {
+            introVideo.currentTime = seekTime;
+            introVideo.play().catch(() => {});
+          }
+        });
+      });
+    }
+
+    function switchVideoLanguage(lang) {
+      currentVideoLang = lang;
+      const btnUrdu = $("btnVoiceLangUrdu");
+      const btnEng = $("btnVoiceLangEnglish");
+      const notice = $("videoLangNotice");
+      const label = $("chapterLangLabel");
+
+      if (lang === "urdu") {
+        if (btnUrdu) {
+          btnUrdu.classList.add("active");
+          btnUrdu.style.border = "1.5px solid var(--primary)";
+          btnUrdu.style.background = "var(--primary-glow)";
+          btnUrdu.style.color = "var(--primary)";
+        }
+        if (btnEng) {
+          btnEng.classList.remove("active");
+          btnEng.style.border = "1px solid var(--border)";
+          btnEng.style.background = "var(--bg-card)";
+          btnEng.style.color = "var(--text-muted)";
+        }
+        if (notice) notice.textContent = "🔊 Asli Urdu Aawaz Active";
+        if (label) label.textContent = "Urdu Timestamps";
+        if (introVideo) {
+          const wasPlaying = !introVideo.paused;
+          introVideo.src = "intro-video-urdu.mp4";
+          introVideo.load();
+          if (wasPlaying) introVideo.play().catch(() => {});
+        }
+      } else {
+        if (btnEng) {
+          btnEng.classList.add("active");
+          btnEng.style.border = "1.5px solid var(--primary)";
+          btnEng.style.background = "var(--primary-glow)";
+          btnEng.style.color = "var(--primary)";
+        }
+        if (btnUrdu) {
+          btnUrdu.classList.remove("active");
+          btnUrdu.style.border = "1px solid var(--border)";
+          btnUrdu.style.background = "var(--bg-card)";
+          btnUrdu.style.color = "var(--text-muted)";
+        }
+        if (notice) notice.textContent = "🔊 English Voiceover Active";
+        if (label) label.textContent = "English Timestamps";
+        if (introVideo) {
+          const wasPlaying = !introVideo.paused;
+          introVideo.src = "intro-video-english.mp4";
+          introVideo.load();
+          if (wasPlaying) introVideo.play().catch(() => {});
+        }
+      }
+      renderVideoChapters(lang);
+    }
+
     const openIntroVideo = () => {
       if (introModal) {
         introModal.style.display = "flex";
+        renderVideoChapters(currentVideoLang);
         if (introVideo) {
+          if (!introVideo.src || introVideo.src.indexOf("intro-video") === -1) {
+            introVideo.src = currentVideoLang === "english" ? "intro-video-english.mp4" : "intro-video-urdu.mp4";
+            introVideo.load();
+          }
           introVideo.currentTime = 0;
           introVideo.play().catch(() => {});
         }
@@ -1480,6 +1583,8 @@
     $("appHeaderIntroVideoBtn")?.addEventListener("click", openIntroVideo);
     $("navIntroVideoBtn")?.addEventListener("click", openIntroVideo);
     $("btnCloseIntroVideo")?.addEventListener("click", closeIntroVideo);
+    $("btnVoiceLangUrdu")?.addEventListener("click", () => switchVideoLanguage("urdu"));
+    $("btnVoiceLangEnglish")?.addEventListener("click", () => switchVideoLanguage("english"));
 
     if (introModal) {
       introModal.addEventListener("click", (e) => {
@@ -1487,16 +1592,7 @@
       });
     }
 
-    // Video chapter seek buttons
-    document.querySelectorAll(".btn-chapter-jump").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const seekTime = parseFloat(btn.dataset.seek || "0");
-        if (introVideo) {
-          introVideo.currentTime = seekTime;
-          introVideo.play().catch(() => {});
-        }
-      });
-    });
+    renderVideoChapters("urdu");
 
     // Toggle Password
     document.querySelectorAll(".btn-toggle-pwd").forEach((btn) => {
