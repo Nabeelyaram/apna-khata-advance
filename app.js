@@ -1454,59 +1454,211 @@
       });
     }
 
-    // Multilingual Video Chapters & Handlers
-    const VIDEO_CHAPTERS = {
+    // Multilingual Video & Interactive Tour Controller
+    const TOUR_DATA = {
       urdu: [
-        { time: 0.0, label: "0:00", title: "🏡 Nayi Family (No Code)" },
-        { time: 20.4, label: "0:20", title: "📊 Smart Dashboard" },
-        { time: 35.3, label: "0:35", title: "🔒 Zaati Private Khata" },
-        { time: 52.3, label: "0:52", title: "👨‍👩‍👧 Family Tree & Audit" },
-        { time: 68.9, label: "1:09", title: "💰 Ghar Ka Budget" },
-        { time: 86.0, label: "1:26", title: "🤝 Kameti Tracker" },
-        { time: 99.6, label: "1:40", title: "📥 Offline Backups" }
+        { num: 1, title: "Step 1 of 7: 🏡 Nayi Family (No Code)", time: 0.0, dur: 20.4, img: "screens/slide_preview_1.png" },
+        { num: 2, title: "Step 2 of 7: 📊 Smart Dashboard Overview", time: 20.4, dur: 14.8, img: "screens/slide_preview_2.png" },
+        { num: 3, title: "Step 3 of 7: 🔒 Zaati Private Khata (100% Khufia)", time: 35.3, dur: 17.0, img: "screens/slide_preview_3.png" },
+        { num: 4, title: "Step 4 of 7: 👨‍👩‍👧 Family Tree & Audit Trail", time: 52.3, dur: 16.5, img: "screens/slide_preview_4.png" },
+        { num: 5, title: "Step 5 of 7: 💰 Ghar Ka Budget & Muqabla", time: 68.9, dur: 17.1, img: "screens/slide_preview_5.png" },
+        { num: 6, title: "Step 6 of 7: 🤝 Kameti Tracker & Baari", time: 86.0, dur: 13.6, img: "screens/slide_preview_6.png" },
+        { num: 7, title: "Step 7 of 7: 📥 1-Click Offline Backups (Excel/PDF)", time: 99.6, dur: 17.8, img: "screens/slide_preview_7.png" }
       ],
       english: [
-        { time: 0.0, label: "0:00", title: "🏡 New Family Setup" },
-        { time: 16.6, label: "0:17", title: "📊 Smart Dashboard" },
-        { time: 28.9, label: "0:29", title: "🔒 Private Ledger" },
-        { time: 44.4, label: "0:44", title: "👨‍👩‍👧 Family Tree" },
-        { time: 55.8, label: "0:56", title: "💰 Household Budget" },
-        { time: 68.6, label: "1:09", title: "🤝 Committee Tracker" },
-        { time: 77.7, label: "1:18", title: "📥 Offline Backups" }
+        { num: 1, title: "Step 1 of 7: 🏡 New Family Setup (No Code)", time: 0.0, dur: 16.5, img: "screens/slide_preview_1.png" },
+        { num: 2, title: "Step 2 of 7: 📊 Smart Central Dashboard", time: 16.6, dur: 12.3, img: "screens/slide_preview_2.png" },
+        { num: 3, title: "Step 3 of 7: 🔒 Private Confidential Ledger", time: 28.9, dur: 15.5, img: "screens/slide_preview_3.png" },
+        { num: 4, title: "Step 4 of 7: 👨‍👩‍👧 Family Tree & Shared Ledger", time: 44.4, dur: 11.4, img: "screens/slide_preview_4.png" },
+        { num: 5, title: "Step 5 of 7: 💰 Household Budget & Comparison", time: 55.8, dur: 12.7, img: "screens/slide_preview_5.png" },
+        { num: 6, title: "Step 6 of 7: 🤝 Committee Tracker", time: 68.6, dur: 9.0, img: "screens/slide_preview_6.png" },
+        { num: 7, title: "Step 7 of 7: 📥 Offline Backups & Settings", time: 77.7, dur: 14.4, img: "screens/slide_preview_7.png" }
       ]
     };
 
-    let currentVideoLang = "urdu";
+    let tourLang = "urdu";
+    let tourIndex = 0;
+    let tourMode = "tour"; // "tour" or "video"
+
     const introModal = $("introVideoModal");
     const introVideo = $("introVideoElem");
+    const tourAudio = $("tourAudioElem");
+    const tourImg = $("tourDisplayImage");
+    const tourIndicator = $("tourStepIndicator");
+    const tourProgressBar = $("tourProgressBar");
+    const btnPlayPause = $("btnTourPlayPause");
 
-    function renderVideoChapters(lang) {
+    function updateTourDisplay(index, seekAudio = true) {
+      const list = TOUR_DATA[tourLang] || TOUR_DATA.urdu;
+      if (index < 0) index = 0;
+      if (index >= list.length) index = list.length - 1;
+      tourIndex = index;
+      const step = list[tourIndex];
+
+      if (tourImg) {
+        tourImg.src = step.img;
+      }
+      if (tourIndicator) {
+        tourIndicator.textContent = step.title;
+      }
+
+      if (tourAudio && seekAudio) {
+        tourAudio.currentTime = step.time;
+        tourAudio.play().catch(() => {});
+        if (btnPlayPause) btnPlayPause.textContent = "⏸️ Pause Aawaz";
+      }
+
+      // Highlight active chapter
+      document.querySelectorAll(".btn-chapter-jump").forEach((btn, idx) => {
+        if (idx === tourIndex) {
+          btn.style.borderColor = "var(--primary)";
+          btn.style.background = "var(--primary-glow)";
+        } else {
+          btn.style.borderColor = "var(--border)";
+          btn.style.background = "var(--bg-card)";
+        }
+      });
+    }
+
+    function renderTourChapters(lang) {
       const container = $("chapterContainer");
       if (!container) return;
-      const list = VIDEO_CHAPTERS[lang] || VIDEO_CHAPTERS.urdu;
-      container.innerHTML = list.map(c => `
-        <button type="button" class="btn-chapter-jump" data-seek="${c.time}" style="background: var(--bg-card); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; text-align: left; cursor: pointer; color: var(--text-main); font-size: 12px; display: flex; align-items: center; gap: 8px;">
-          <span style="font-weight: 800; color: var(--primary); font-size: 11px;">${c.label}</span>
+      const list = TOUR_DATA[lang] || TOUR_DATA.urdu;
+      container.innerHTML = list.map((c, idx) => `
+        <button type="button" class="btn-chapter-jump" data-idx="${idx}" data-time="${c.time}" style="background: var(--bg-card); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; text-align: left; cursor: pointer; color: var(--text-main); font-size: 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-weight: 800; color: var(--primary); font-size: 11px;">0:${Math.floor(c.time) < 10 ? '0' : ''}${Math.floor(c.time)}</span>
           <span>${c.title}</span>
         </button>
       `).join("");
 
       container.querySelectorAll(".btn-chapter-jump").forEach(btn => {
         btn.addEventListener("click", () => {
-          const seekTime = parseFloat(btn.dataset.seek || "0");
-          if (introVideo) {
-            introVideo.currentTime = seekTime;
+          const idx = parseInt(btn.dataset.idx || "0");
+          if (tourMode === "tour") {
+            updateTourDisplay(idx, true);
+          } else if (introVideo) {
+            const time = parseFloat(btn.dataset.time || "0");
+            introVideo.currentTime = time;
             introVideo.play().catch(() => {});
           }
         });
       });
     }
 
-    function switchVideoLanguage(lang) {
-      currentVideoLang = lang;
+    if (tourAudio) {
+      tourAudio.addEventListener("timeupdate", () => {
+        const cur = tourAudio.currentTime;
+        const dur = tourAudio.duration || 117.5;
+        if (tourProgressBar) {
+          tourProgressBar.style.width = Math.min(100, (cur / dur) * 100) + "%";
+        }
+        const list = TOUR_DATA[tourLang] || TOUR_DATA.urdu;
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (cur >= list[i].time) {
+            if (tourIndex !== i) {
+              tourIndex = i;
+              if (tourImg) tourImg.src = list[i].img;
+              if (tourIndicator) tourIndicator.textContent = list[i].title;
+              document.querySelectorAll(".btn-chapter-jump").forEach((btn, idx) => {
+                if (idx === i) {
+                  btn.style.borderColor = "var(--primary)";
+                  btn.style.background = "var(--primary-glow)";
+                } else {
+                  btn.style.borderColor = "var(--border)";
+                  btn.style.background = "var(--bg-card)";
+                }
+              });
+            }
+            break;
+          }
+        }
+      });
+
+      tourAudio.addEventListener("ended", () => {
+        if (btnPlayPause) btnPlayPause.textContent = "▶️ Play Aawaz";
+      });
+    }
+
+    if (btnPlayPause) {
+      btnPlayPause.addEventListener("click", () => {
+        if (!tourAudio) return;
+        if (tourAudio.paused) {
+          tourAudio.play().catch(() => {});
+          btnPlayPause.textContent = "⏸️ Pause Aawaz";
+        } else {
+          tourAudio.pause();
+          btnPlayPause.textContent = "▶️ Play Aawaz";
+        }
+      });
+    }
+
+    $("btnTourNext")?.addEventListener("click", () => {
+      const list = TOUR_DATA[tourLang] || TOUR_DATA.urdu;
+      if (tourIndex < list.length - 1) {
+        updateTourDisplay(tourIndex + 1, true);
+      }
+    });
+
+    $("btnTourPrev")?.addEventListener("click", () => {
+      if (tourIndex > 0) {
+        updateTourDisplay(tourIndex - 1, true);
+      }
+    });
+
+    // View Mode Tabs: Live Interactive Tour vs MP4 Video Player
+    const tabTour = $("tabModeTour");
+    const tabVideo = $("tabModeVideo");
+    const tourContainer = $("tourViewContainer");
+    const videoContainer = $("videoViewContainer");
+
+    if (tabTour && tabVideo && tourContainer && videoContainer) {
+      tabTour.addEventListener("click", () => {
+        tourMode = "tour";
+        tabTour.classList.add("active");
+        tabTour.style.border = "1.5px solid var(--primary)";
+        tabTour.style.background = "var(--primary-glow)";
+        tabTour.style.color = "var(--primary)";
+
+        tabVideo.classList.remove("active");
+        tabVideo.style.border = "1px solid var(--border)";
+        tabVideo.style.background = "var(--bg-card)";
+        tabVideo.style.color = "var(--text-muted)";
+
+        tourContainer.style.display = "block";
+        videoContainer.style.display = "none";
+        if (introVideo) introVideo.pause();
+        updateTourDisplay(tourIndex, false);
+      });
+
+      tabVideo.addEventListener("click", () => {
+        tourMode = "video";
+        tabVideo.classList.add("active");
+        tabVideo.style.border = "1.5px solid var(--primary)";
+        tabVideo.style.background = "var(--primary-glow)";
+        tabVideo.style.color = "var(--primary)";
+
+        tabTour.classList.remove("active");
+        tabTour.style.border = "1px solid var(--border)";
+        tabTour.style.background = "var(--bg-card)";
+        tabTour.style.color = "var(--text-muted)";
+
+        videoContainer.style.display = "block";
+        tourContainer.style.display = "none";
+        if (tourAudio) tourAudio.pause();
+        if (btnPlayPause) btnPlayPause.textContent = "▶️ Play Aawaz";
+        if (introVideo) {
+          introVideo.src = tourLang === "english" ? "intro-video-english.mp4" : "intro-video-urdu.mp4";
+          introVideo.load();
+          introVideo.play().catch(() => {});
+        }
+      });
+    }
+
+    // Voiceover Language Switcher
+    function setVoiceLanguage(lang) {
+      tourLang = lang;
       const btnUrdu = $("btnVoiceLangUrdu");
       const btnEng = $("btnVoiceLangEnglish");
-      const notice = $("videoLangNotice");
       const label = $("chapterLangLabel");
 
       if (lang === "urdu") {
@@ -1522,9 +1674,17 @@
           btnEng.style.background = "var(--bg-card)";
           btnEng.style.color = "var(--text-muted)";
         }
-        if (notice) notice.textContent = "🔊 Asli Urdu Aawaz Active";
         if (label) label.textContent = "Urdu Timestamps";
-        if (introVideo) {
+        if (tourAudio) {
+          const wasPlaying = !tourAudio.paused;
+          tourAudio.src = "intro_voice_urdu.mp3";
+          tourAudio.load();
+          if (wasPlaying) {
+            tourAudio.play().catch(() => {});
+            if (btnPlayPause) btnPlayPause.textContent = "⏸️ Pause Aawaz";
+          }
+        }
+        if (introVideo && tourMode === "video") {
           const wasPlaying = !introVideo.paused;
           introVideo.src = "intro-video-urdu.mp4";
           introVideo.load();
@@ -1543,38 +1703,46 @@
           btnUrdu.style.background = "var(--bg-card)";
           btnUrdu.style.color = "var(--text-muted)";
         }
-        if (notice) notice.textContent = "🔊 English Voiceover Active";
         if (label) label.textContent = "English Timestamps";
-        if (introVideo) {
+        if (tourAudio) {
+          const wasPlaying = !tourAudio.paused;
+          tourAudio.src = "intro_voice_english.mp3";
+          tourAudio.load();
+          if (wasPlaying) {
+            tourAudio.play().catch(() => {});
+            if (btnPlayPause) btnPlayPause.textContent = "⏸️ Pause Aawaz";
+          }
+        }
+        if (introVideo && tourMode === "video") {
           const wasPlaying = !introVideo.paused;
           introVideo.src = "intro-video-english.mp4";
           introVideo.load();
           if (wasPlaying) introVideo.play().catch(() => {});
         }
       }
-      renderVideoChapters(lang);
+      renderTourChapters(lang);
+      updateTourDisplay(tourIndex, false);
     }
+
+    $("btnVoiceLangUrdu")?.addEventListener("click", () => setVoiceLanguage("urdu"));
+    $("btnVoiceLangEnglish")?.addEventListener("click", () => setVoiceLanguage("english"));
 
     const openIntroVideo = () => {
       if (introModal) {
         introModal.style.display = "flex";
-        renderVideoChapters(currentVideoLang);
-        if (introVideo) {
-          if (!introVideo.src || introVideo.src.indexOf("intro-video") === -1) {
-            introVideo.src = currentVideoLang === "english" ? "intro-video-english.mp4" : "intro-video-urdu.mp4";
-            introVideo.load();
-          }
-          introVideo.currentTime = 0;
-          introVideo.play().catch(() => {});
-        }
+        renderTourChapters(tourLang);
+        updateTourDisplay(0, true);
       }
     };
+
     const closeIntroVideo = () => {
       if (introModal) {
         introModal.style.display = "none";
-        if (introVideo) {
-          introVideo.pause();
+        if (tourAudio) {
+          tourAudio.pause();
+          if (btnPlayPause) btnPlayPause.textContent = "▶️ Play Aawaz";
         }
+        if (introVideo) introVideo.pause();
       }
     };
 
@@ -1583,8 +1751,6 @@
     $("appHeaderIntroVideoBtn")?.addEventListener("click", openIntroVideo);
     $("navIntroVideoBtn")?.addEventListener("click", openIntroVideo);
     $("btnCloseIntroVideo")?.addEventListener("click", closeIntroVideo);
-    $("btnVoiceLangUrdu")?.addEventListener("click", () => switchVideoLanguage("urdu"));
-    $("btnVoiceLangEnglish")?.addEventListener("click", () => switchVideoLanguage("english"));
 
     if (introModal) {
       introModal.addEventListener("click", (e) => {
@@ -1592,7 +1758,7 @@
       });
     }
 
-    renderVideoChapters("urdu");
+    renderTourChapters("urdu");
 
     // Toggle Password
     document.querySelectorAll(".btn-toggle-pwd").forEach((btn) => {

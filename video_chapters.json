@@ -3,74 +3,88 @@
     {
       "step": 1,
       "title": "\ud83c\udfe1 Nayi Family (No Code)",
-      "time": 0.0
+      "time": 0.0,
+      "dur": 20.4
     },
     {
       "step": 2,
       "title": "\ud83d\udcca Smart Dashboard",
-      "time": 20.4
+      "time": 20.4,
+      "dur": 14.8
     },
     {
       "step": 3,
       "title": "\ud83d\udd12 Zaati Private Khata",
-      "time": 35.3
+      "time": 35.3,
+      "dur": 17.1
     },
     {
       "step": 4,
       "title": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67 Family Tree & Audit",
-      "time": 52.3
+      "time": 52.3,
+      "dur": 16.5
     },
     {
       "step": 5,
       "title": "\ud83d\udcb0 Ghar Ka Budget",
-      "time": 68.9
+      "time": 68.9,
+      "dur": 17.1
     },
     {
       "step": 6,
       "title": "\ud83e\udd1d Kameti Tracker",
-      "time": 86.0
+      "time": 86.0,
+      "dur": 13.7
     },
     {
       "step": 7,
       "title": "\ud83d\udce5 Offline Backups",
-      "time": 99.6
+      "time": 99.6,
+      "dur": 17.8
     }
   ],
   "english": [
     {
       "step": 1,
       "title": "\ud83c\udfe1 New Family Setup",
-      "time": 0.0
+      "time": 0.0,
+      "dur": 16.6
     },
     {
       "step": 2,
       "title": "\ud83d\udcca Smart Dashboard",
-      "time": 16.6
+      "time": 16.6,
+      "dur": 12.3
     },
     {
       "step": 3,
       "title": "\ud83d\udd12 Private Ledger",
-      "time": 28.9
+      "time": 28.9,
+      "dur": 15.6
     },
     {
       "step": 4,
       "title": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67 Family Tree",
-      "time": 44.4
+      "time": 44.4,
+      "dur": 11.4
     },
     {
       "step": 5,
       "title": "\ud83d\udcb0 Household Budget",
-      "time": 55.8
+      "time": 55.8,
+      "dur": 12.8
     },
     {
       "step": 6,
       "title": "\ud83e\udd1d Committee Tracker",
-      "time": 68.6
+      "time": 68.6,
+      "dur": 9.1
     },
     {
       "step": 7,
       "title": "\ud83d\udce5 Offline Backups",
-      "time": 77.7
+      "time": 77.7,
+      "dur": 14.4
     }
   ]
 }
