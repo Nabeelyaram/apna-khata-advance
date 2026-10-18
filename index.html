@@ -716,11 +716,11 @@
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; background: var(--bg-card-subtle); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border);">
         <!-- Mode Tabs -->
         <div style="display: inline-flex; gap: 6px;">
-          <button type="button" id="tabModeTour" class="auth-tab active" style="padding: 6px 14px; font-size: 11.5px; font-weight: 800; border-radius: 16px; border: 1.5px solid var(--primary); background: var(--primary-glow); color: var(--primary); cursor: pointer;">
-            📸 Live Interactive Tour (No Freezing)
-          </button>
-          <button type="button" id="tabModeVideo" class="auth-tab" style="padding: 6px 14px; font-size: 11.5px; font-weight: 800; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); cursor: pointer;">
+          <button type="button" id="tabModeVideo" class="auth-tab active" style="padding: 6px 14px; font-size: 11.5px; font-weight: 800; border-radius: 16px; border: 1.5px solid var(--primary); background: var(--primary-glow); color: var(--primary); cursor: pointer;">
             🎬 MP4 Video Player
+          </button>
+          <button type="button" id="tabModeTour" class="auth-tab" style="padding: 6px 14px; font-size: 11.5px; font-weight: 800; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); cursor: pointer;">
+            📸 Step-by-Step Slides
           </button>
         </div>
 
@@ -736,11 +736,21 @@
         </div>
       </div>
 
-      <!-- ==================== VIEW 1: LIVE INTERACTIVE TOUR (DEFAULT - 100% RELIABLE) ==================== -->
-      <div id="tourViewContainer" style="display: block;">
-        <!-- SCREEN DISPLAY (IMG ELEMENT - NEVER FAILS TO RENDER) -->
+      <!-- ==================== VIEW 1: MP4 VIDEO PLAYER (PRIMARY / DEFAULT) ==================== -->
+      <div id="videoViewContainer" style="display: block;">
+        <div style="position: relative; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 12px;">
+          <video id="introVideoElem" controls playsinline style="width: 100%; aspect-ratio: 16/9; display: block; background: #000;">
+            <source id="introVideoSource" src="intro-video-urdu.mp4" type="video/mp4">
+            Aap ka browser HTML5 video support nahi karta.
+          </video>
+        </div>
+      </div>
+
+      <!-- ==================== VIEW 2: STEP-BY-STEP SLIDES ==================== -->
+      <div id="tourViewContainer" style="display: none;">
+        <!-- SCREEN DISPLAY -->
         <div style="position: relative; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 10px;">
-          <img id="tourDisplayImage" src="screens/slide_preview_1.png" alt="App Screen" style="width: 100%; aspect-ratio: 16/9; object-fit: contain; display: block; background: #0b0f19;">
+          <img id="tourDisplayImage" src="slide_preview_1.png" alt="App Screen" style="width: 100%; aspect-ratio: 16/9; object-fit: contain; display: block; background: #0b0f19;">
         </div>
 
         <!-- LIVE AUDIO ELEMENT -->
@@ -770,16 +780,6 @@
               Step 1 of 7: Nayi Family
             </span>
           </div>
-        </div>
-      </div>
-
-      <!-- ==================== VIEW 2: MP4 VIDEO PLAYER (720p BASELINE) ==================== -->
-      <div id="videoViewContainer" style="display: none;">
-        <div style="position: relative; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 12px;">
-          <video id="introVideoElem" controls playsinline style="width: 100%; aspect-ratio: 16/9; display: block; background: #000;">
-            <source id="introVideoSource" src="intro-video-urdu.mp4" type="video/mp4">
-            Aap ka browser HTML5 video support nahi karta.
-          </video>
         </div>
       </div>
 
@@ -819,6 +819,7 @@
 
   <!-- Scripts -->
   <script src="config.js"></script>
+  <script src="slides_data.js"></script>
   <script src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {

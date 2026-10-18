@@ -1454,31 +1454,38 @@
       });
     }
 
+    function getSlideImage(num) {
+      if (window.SLIDES_DATA && window.SLIDES_DATA[num]) {
+        return window.SLIDES_DATA[num];
+      }
+      return `slide_preview_${num}.png`;
+    }
+
     // Multilingual Video & Interactive Tour Controller
     const TOUR_DATA = {
       urdu: [
-        { num: 1, title: "Step 1 of 7: 🏡 Nayi Family (No Code)", time: 0.0, dur: 20.4, img: "screens/slide_preview_1.png" },
-        { num: 2, title: "Step 2 of 7: 📊 Smart Dashboard Overview", time: 20.4, dur: 14.8, img: "screens/slide_preview_2.png" },
-        { num: 3, title: "Step 3 of 7: 🔒 Zaati Private Khata (100% Khufia)", time: 35.3, dur: 17.0, img: "screens/slide_preview_3.png" },
-        { num: 4, title: "Step 4 of 7: 👨‍👩‍👧 Family Tree & Audit Trail", time: 52.3, dur: 16.5, img: "screens/slide_preview_4.png" },
-        { num: 5, title: "Step 5 of 7: 💰 Ghar Ka Budget & Muqabla", time: 68.9, dur: 17.1, img: "screens/slide_preview_5.png" },
-        { num: 6, title: "Step 6 of 7: 🤝 Kameti Tracker & Baari", time: 86.0, dur: 13.6, img: "screens/slide_preview_6.png" },
-        { num: 7, title: "Step 7 of 7: 📥 1-Click Offline Backups (Excel/PDF)", time: 99.6, dur: 17.8, img: "screens/slide_preview_7.png" }
+        { num: 1, title: "Step 1 of 7: 🏡 Nayi Family (No Code)", time: 0.0, dur: 20.4, img: getSlideImage(1) },
+        { num: 2, title: "Step 2 of 7: 📊 Smart Dashboard Overview", time: 20.4, dur: 14.8, img: getSlideImage(2) },
+        { num: 3, title: "Step 3 of 7: 🔒 Zaati Private Khata (100% Khufia)", time: 35.3, dur: 17.0, img: getSlideImage(3) },
+        { num: 4, title: "Step 4 of 7: 👨‍👩‍👧 Family Tree & Audit Trail", time: 52.3, dur: 16.5, img: getSlideImage(4) },
+        { num: 5, title: "Step 5 of 7: 💰 Ghar Ka Budget & Muqabla", time: 68.9, dur: 17.1, img: getSlideImage(5) },
+        { num: 6, title: "Step 6 of 7: 🤝 Kameti Tracker & Baari", time: 86.0, dur: 13.6, img: getSlideImage(6) },
+        { num: 7, title: "Step 7 of 7: 📥 1-Click Offline Backups (Excel/PDF)", time: 99.6, dur: 17.8, img: getSlideImage(7) }
       ],
       english: [
-        { num: 1, title: "Step 1 of 7: 🏡 New Family Setup (No Code)", time: 0.0, dur: 16.5, img: "screens/slide_preview_1.png" },
-        { num: 2, title: "Step 2 of 7: 📊 Smart Central Dashboard", time: 16.6, dur: 12.3, img: "screens/slide_preview_2.png" },
-        { num: 3, title: "Step 3 of 7: 🔒 Private Confidential Ledger", time: 28.9, dur: 15.5, img: "screens/slide_preview_3.png" },
-        { num: 4, title: "Step 4 of 7: 👨‍👩‍👧 Family Tree & Shared Ledger", time: 44.4, dur: 11.4, img: "screens/slide_preview_4.png" },
-        { num: 5, title: "Step 5 of 7: 💰 Household Budget & Comparison", time: 55.8, dur: 12.7, img: "screens/slide_preview_5.png" },
-        { num: 6, title: "Step 6 of 7: 🤝 Committee Tracker", time: 68.6, dur: 9.0, img: "screens/slide_preview_6.png" },
-        { num: 7, title: "Step 7 of 7: 📥 Offline Backups & Settings", time: 77.7, dur: 14.4, img: "screens/slide_preview_7.png" }
+        { num: 1, title: "Step 1 of 7: 🏡 New Family Setup (No Code)", time: 0.0, dur: 16.5, img: getSlideImage(1) },
+        { num: 2, title: "Step 2 of 7: 📊 Smart Central Dashboard", time: 16.6, dur: 12.3, img: getSlideImage(2) },
+        { num: 3, title: "Step 3 of 7: 🔒 Private Confidential Ledger", time: 28.9, dur: 15.5, img: getSlideImage(3) },
+        { num: 4, title: "Step 4 of 7: 👨‍👩‍👧 Family Tree & Shared Ledger", time: 44.4, dur: 11.4, img: getSlideImage(4) },
+        { num: 5, title: "Step 5 of 7: 💰 Household Budget & Comparison", time: 55.8, dur: 12.7, img: getSlideImage(5) },
+        { num: 6, title: "Step 6 of 7: 🤝 Committee Tracker", time: 68.6, dur: 9.0, img: getSlideImage(6) },
+        { num: 7, title: "Step 7 of 7: 📥 Offline Backups & Settings", time: 77.7, dur: 14.4, img: getSlideImage(7) }
       ]
     };
 
     let tourLang = "urdu";
     let tourIndex = 0;
-    let tourMode = "tour"; // "tour" or "video"
+    let tourMode = "video"; // Default to MP4 video player for 100% reliable visuals
 
     const introModal = $("introVideoModal");
     const introVideo = $("introVideoElem");
@@ -1496,7 +1503,14 @@
       const step = list[tourIndex];
 
       if (tourImg) {
-        tourImg.src = step.img;
+        tourImg.src = getSlideImage(step.num);
+        tourImg.onerror = () => {
+          if (window.SLIDES_DATA && window.SLIDES_DATA[step.num]) {
+            tourImg.src = window.SLIDES_DATA[step.num];
+          } else {
+            tourImg.src = `slide_preview_${step.num}.png`;
+          }
+        };
       }
       if (tourIndicator) {
         tourIndicator.textContent = step.title;
@@ -1561,7 +1575,7 @@
           if (cur >= list[i].time) {
             if (tourIndex !== i) {
               tourIndex = i;
-              if (tourImg) tourImg.src = list[i].img;
+              if (tourImg) tourImg.src = getSlideImage(list[i].num);
               if (tourIndicator) tourIndicator.textContent = list[i].title;
               document.querySelectorAll(".btn-chapter-jump").forEach((btn, idx) => {
                 if (idx === i) {
@@ -1739,12 +1753,42 @@
     $("btnVoiceLangUrdu")?.addEventListener("click", () => setVoiceLanguage("urdu"));
     $("btnVoiceLangEnglish")?.addEventListener("click", () => setVoiceLanguage("english"));
 
+    if (introVideo) {
+      introVideo.addEventListener("timeupdate", () => {
+        if (tourMode !== "video") return;
+        const cur = introVideo.currentTime;
+        const list = TOUR_DATA[tourLang] || TOUR_DATA.urdu;
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (cur >= list[i].time) {
+            document.querySelectorAll(".btn-chapter-jump").forEach((btn, idx) => {
+              if (idx === i) {
+                btn.style.borderColor = "var(--primary)";
+                btn.style.background = "var(--primary-glow)";
+              } else {
+                btn.style.borderColor = "var(--border)";
+                btn.style.background = "var(--bg-card)";
+              }
+            });
+            break;
+          }
+        }
+      });
+    }
+
     const openIntroVideo = () => {
       if (introModal) {
         introModal.style.display = "flex";
         introModal.classList.add("active");
         renderTourChapters(tourLang);
-        updateTourDisplay(0, true);
+        if (tourMode === "video") {
+          if (introVideo) {
+            introVideo.src = tourLang === "english" ? "intro-video-english.mp4" : "intro-video-urdu.mp4";
+            introVideo.currentTime = 0;
+            introVideo.play().catch(() => {});
+          }
+        } else {
+          updateTourDisplay(0, true);
+        }
       }
     };
 
